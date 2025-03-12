@@ -6,16 +6,20 @@ import { useThemeStore } from "@/store";
 import { useTheme } from "next-themes";
 import { themes } from "@/config/thems";
 
-const StowerPerformanceReport = ({ height = 250 }) => {
+interface StowerPerformanceReportProps {
+  stowerStats?: {
+    series: number[];
+  };
+  height?: number;
+}
+
+const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanceReportProps) => {
   const { theme: config, setTheme: setConfig, isRtl } = useThemeStore();
   const { theme: mode } = useTheme();
   const theme = themes.find((theme) => theme.name === config);
   
-  // Distribution of stower performance
-  // High performers: >200 packages
-  // Average: 110-200 packages
-  // Below target: <110 packages
-  const series = [4, 7, 1]; // Number of stowers in each category
+  // Use provided data or fallback to empty data
+  const series = stowerStats?.series || [0, 0, 0];
 
   const options: any = {
     chart: {
@@ -112,14 +116,25 @@ const StowerPerformanceReport = ({ height = 250 }) => {
     },
   };
 
+  // Check if there are any non-zero values
+  const hasData = series.some(value => value > 0);
+
   return (
-    <Chart
-      options={options}
-      series={series}
-      type="donut"
-      height={height}
-      width={"100%"}
-    />
+    <>
+      {!hasData ? (
+        <div className="flex justify-center items-center h-64 text-default-500">
+          No stower data available for this period
+        </div>
+      ) : (
+        <Chart
+          options={options}
+          series={series}
+          type="donut"
+          height={height}
+          width={"100%"}
+        />
+      )}
+    </>
   );
 };
 

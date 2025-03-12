@@ -4,93 +4,147 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 import { useThemeStore } from "@/store";
 import { useTheme } from "next-themes";
 import { themes } from "@/config/thems";
-import {
-  getGridConfig,
-  getXAxisConfig,
-  getYAxisConfig,
-} from "@/lib/appex-chart-options";
+import { format, parseISO } from "date-fns";
 
 interface ReportsChartProps {
-  series: ApexAxisChartSeries;
+  series: { data: number[] }[];
   chartColor: string;
+  categories?: string[];
   height?: number;
 }
 
-const ReportsChart = ({ series, chartColor, height = 300 }: ReportsChartProps) => {
-  const { theme: config, setTheme: setConfig } = useThemeStore();
+const ReportsChart = ({ series, chartColor, categories = [], height = 250 }: ReportsChartProps) => {
+  const { isRtl } = useThemeStore();
   const { theme: mode } = useTheme();
 
-  const theme = themes.find((theme) => theme.name === config);
+  // If no data provided or empty arrays, show a placeholder
+  const hasData = series.length > 0 && series[0].data && series[0].data.length > 0;
+  
+  // Format dates for display
+  const formattedCategories = categories.map(dateStr => {
+    try {
+      return format(parseISO(dateStr), "MMM dd");
+    } catch (e) {
+      return dateStr;
+    }
+  });
 
   const options: any = {
     chart: {
+      height: height,
+      type: "area",
       toolbar: {
         show: false,
       },
-      zoom: {
-        enabled: false,
-      }
+      animations: {
+        enabled: true,
+        easing: "easeinout",
+        speed: 800,
+        animateGradually: {
+          enabled: true,
+          delay: 150,
+        },
+        dynamicAnimation: {
+          enabled: true,
+          speed: 350,
+        },
+      },
     },
     dataLabels: {
       enabled: false,
     },
     stroke: {
       curve: "smooth",
-      width: 4,
+      width: 3,
     },
     colors: [chartColor],
-    tooltip: {
-      theme: mode === "dark" ? "dark" : "light",
-      y: {
-        formatter: function(value: number) {
-          return value + " packages";
-        }
-      }
-    },
-    grid: getGridConfig(
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].chartGird})`
-    ),
-    fill: {
-      type: "gradient",
-      colors: chartColor,
-      gradient: {
-        shadeIntensity: 0.1,
-        opacityFrom: 0.4,
-        opacityTo: 0.1,
-        stops: [50, 100, 0],
+    xaxis: {
+      categories: formattedCategories.length > 0 ? formattedCategories : undefined,
+      labels: {
+        style: {
+          colors: "#999",
+        },
+      },
+      axisBorder: {
+        show: false,
+      },
+      axisTicks: {
+        show: false,
       },
     },
     yaxis: {
-      ...getYAxisConfig(
-        `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].chartLabel})`
-      ),
-      title: {
-        text: 'Packages',
+      tickAmount: 4,
+      floating: false,
+      min: hasData ? Math.max(0, Math.min(...series[0].data) * 0.8) : 0,
+      max: hasData ? Math.max(...series[0].data) * 1.2 : 100,
+      labels: {
         style: {
-          color: `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].chartLabel})`
-        }
+          colors: "#999",
+        },
       },
-      min: function(min: number) {
-        return min * 0.8;
-      },
-      max: function(max: number) {
-        return max * 1.2;
+    },
+    tooltip: {
+      theme: mode === "dark" ? "dark" : "light",
+      x: {
+        format: "dd/MM/yy"
       }
     },
-    xaxis: {
-      ...getXAxisConfig(
-        `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].chartLabel})`
-      ),
-      categories: ['30 Jan 25', '31 Jan 25', '3 Feb 25', '4 Feb 25', '5 Feb 25', '6 Feb 25', '7 Feb 25', '10 Feb 25', '11 Feb 25', '12 Feb 25'],
+    grid: {
+      borderColor: "rgba(0,0,0,0.1)",
+      strokeDashArray: 3,
+      yaxis: {
+        lines: {
+          show: true,
+        },
+      },
+      padding: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 10,
+      },
     },
-    padding: {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
+    fill: {
+      type: "gradient",
+      gradient: {
+        shade: "light",
+        type: "vertical",
+        shadeIntensity: 0.5,
+        gradientToColors: undefined,
+        inverseColors: true,
+        opacityFrom: 0.8,
+        opacityTo: 0.2,
+        stops: [0, 100],
+        colorStops: []
+      }
     },
+    legend: {
+      show: false
+    },
+    responsive: [
+      {
+        breakpoint: 600,
+        options: {
+          chart: {
+            height: 240,
+          },
+          yaxis: {
+            show: false,
+          },
+        },
+      },
+    ],
   };
   
+  // Display a placeholder if no data
+  if (!hasData) {
+    return (
+      <div className="flex justify-center items-center h-64 text-default-500">
+        No data available for this time period
+      </div>
+    );
+  }
+
   return (
     <Chart
       options={options}

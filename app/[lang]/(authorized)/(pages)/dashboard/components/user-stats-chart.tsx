@@ -1,119 +1,127 @@
 "use client";
-
 import dynamic from "next/dynamic";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
 import { useThemeStore } from "@/store";
 import { useTheme } from "next-themes";
 import { themes } from "@/config/thems";
 
-const RoleStats = ({ height = 250 }) => {
-  const { theme: config, setTheme: setConfig, isRtl } = useThemeStore();
+interface RolePerformance {
+  categories: string[];
+  series: {
+    name: string;
+    data: number[];
+  }[];
+}
+
+interface RoleStatsProps {
+  rolePerformance?: RolePerformance;
+  height?: number;
+}
+
+const RoleStats = ({ rolePerformance, height = 250 }: RoleStatsProps) => {
+  const { theme: config } = useThemeStore();
   const { theme: mode } = useTheme();
   const theme = themes.find((theme) => theme.name === config);
 
-  // Sample data for packages handled by each role
-  const series = [1934, 1100, 834]; // Inductor, Primary Downstacker, Secondary Downstacker
+  // Default data if none provided
+  const defaultCategories = ["Inductor", "Stower", "Downstacker"];
+  const defaultSeries = [
+    {
+      name: "Actual",
+      data: [0, 0, 0]
+    },
+    {
+      name: "Target",
+      data: [180, 140, 90]
+    }
+  ];
+
+  // Use provided data or fallback to defaults
+  const categories = rolePerformance?.categories || defaultCategories;
+  const series = rolePerformance?.series || defaultSeries;
 
   const options: any = {
     chart: {
+      type: 'bar',
+      height: height,
       toolbar: {
         show: false,
       },
-    },
-    labels: ["Inductor", "Primary Downstacker", "Secondary Downstacker"],
-    dataLabels: {
-      enabled: false,
-    },
-    colors: [
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].primary})`,
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].info})`,
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].warning})`,
-    ],
-    tooltip: {
-      theme: mode === "dark" ? "dark" : "light",
-      y: {
-        formatter: function(value: number) {
-          return value + " packages";
-        }
-      }
-    },
-    stroke: {
-      width: 0
+      stacked: false,
     },
     plotOptions: {
-      pie: {
-        donut: {
-          labels: {
-            show: true,
-            name: {
-              show: true,
-              fontSize: "14px",
-              fontWeight: 600,
-              colors: `hsl(${theme?.cssVars[
-                mode === "dark" || mode === "system" ? "dark" : "light"
-              ].chartLabel})`,
-            },
-            value: {
-              show: true,
-              fontSize: "14px",
-              fontWeight: 600,
-              color: `hsl(${theme?.cssVars[
-                mode === "dark" || mode === "system" ? "dark" : "light"
-              ].chartLabel})`,
-              formatter: function(val: number) {
-                return val + " pkgs";
-              }
-            },
-            total: {
-              show: true,
-              label: "Total Packages",
-              fontSize: "16px",
-              fontWeight: 600,
-              color: `hsl(${theme?.cssVars[
-                mode === "dark" || mode === "system" ? "dark" : "light"
-              ].chartLabel})`,
-              formatter: function(w: any) {
-                return w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0) + " pkgs";
-              }
-            },
-          },
+      bar: {
+        horizontal: false,
+        columnWidth: '55%',
+        borderRadius: 5,
+      },
+    },
+    dataLabels: {
+      enabled: false
+    },
+    grid: {
+      borderColor: "#f1f1f1",
+      padding: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 10
+      }
+    },
+    xaxis: {
+      categories: categories,
+      labels: {
+        style: {
+          colors: Array(8).fill(
+            `hsl(${theme?.cssVars[
+              mode === "dark" || mode === "system" ? "dark" : "light"
+            ].chartLabel})`
+          ),
+        },
+      },
+    },
+    yaxis: {
+      labels: {
+        style: {
+          colors: [
+            `hsl(${theme?.cssVars[
+              mode === "dark" || mode === "system" ? "dark" : "light"
+            ].chartLabel})`
+          ],
         },
       },
     },
     legend: {
-      position: "bottom",
       labels: {
-        colors: `hsl(${theme?.cssVars[
-          mode === "dark" || mode === "system" ? "dark" : "light"
-        ].chartLabel})`,
+        colors: [
+          `hsl(${theme?.cssVars[
+            mode === "dark" || mode === "system" ? "dark" : "light"
+          ].chartLabel})`
+        ],
       },
-      itemMargin: {
-        horizontal: 10,
-        vertical: 8,
-      },
-      markers: {
-        width: 10,
-        height: 10,
-        radius: 10,
-        offsetX: isRtl ? 5 : -5
-      },
-      formatter: function(seriesName: string, opts: any) {
-        return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex] + " pkgs";
+    },
+    tooltip: {
+      y: {
+        formatter: function (val: number) {
+          return val + " packages/hr";
+        }
       }
     },
-    padding: {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
+    fill: {
+      opacity: 1
     },
+    colors: [
+      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].primary})`,
+      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].success})`,
+    ],
   };
 
   return (
     <Chart
       options={options}
       series={series}
-      type="donut"
+      type="bar"
       height={height}
       width={"100%"}
     />

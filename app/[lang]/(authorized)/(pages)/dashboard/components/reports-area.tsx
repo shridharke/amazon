@@ -1,51 +1,87 @@
-"use client"
+"use client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react";
 
-const ReportsArea = () => {
-  const metrics = [
+interface MetricItem {
+  id: number;
+  name: string;
+  count: string;
+  rate: string;
+  isUp: boolean;
+  color: string;
+  icon?: React.ReactNode;
+}
+
+interface ReportsAreaProps {
+  metrics?: MetricItem[];
+}
+
+const ReportsArea = ({ metrics }: ReportsAreaProps) => {
+  // Default icons for metrics if not provided
+  const getIconForMetric = (name: string) => {
+    switch (name.toLowerCase()) {
+      case "packages/hour":
+        return <Icon icon="material-symbols:package" className="h-4 w-4" />;
+      case "stower efficiency":
+        return <Icon icon="mdi:account-group" className="h-4 w-4" />;
+      case "error rate":
+        return <Icon icon="mdi:alert-circle-outline" className="h-4 w-4" />;
+      case "queue time":
+        return <Icon icon="mdi:timer-sand" className="h-4 w-4" />;
+      default:
+        return <Icon icon="mdi:chart-line" className="h-4 w-4" />;
+    }
+  };
+
+  // Default metrics if none are provided
+  const defaultMetrics = [
     {
       id: 1,
       name: "Packages/Hour",
-      count: "185",
-      rate: "12",
+      count: "0",
+      rate: "0",
       isUp: true,
-      icon: <Icon icon="material-symbols:package" className="h-4 w-4" />,
       color: "primary",
     },
     {
       id: 2,
       name: "Stower Efficiency",
-      count: "92%",
-      rate: "5",
+      count: "0%",
+      rate: "0",
       isUp: true,
-      icon: <Icon icon="mdi:account-group" className="h-4 w-4" />,
       color: "info",
     },
     {
       id: 3,
       name: "Error Rate",
-      count: "0.8%",
-      rate: "15",
+      count: "0%",
+      rate: "0",
       isUp: false,
-      icon: <Icon icon="mdi:alert-circle-outline" className="h-4 w-4" />,
       color: "warning",
     },
     {
       id: 4,
       name: "Queue Time",
-      count: "4.2m",
-      rate: "30",
+      count: "0m",
+      rate: "0",
       isUp: false,
-      icon: <Icon icon="mdi:timer-sand" className="h-4 w-4" />,
       color: "destructive",
     },
   ];
 
+  // Use provided metrics or fallback to defaults
+  const metricsToRender = metrics || defaultMetrics;
+
+  // Add icons if not present
+  const enrichedMetrics = metricsToRender.map(metric => ({
+    ...metric,
+    icon: getIconForMetric(metric.name)
+  }));
+
   return (
     <>
-      {metrics.map((item, index) => (
+      {enrichedMetrics.map((item, index) => (
         <Card key={`metric-card-${index}`}>
           <CardHeader className="flex-col-reverse sm:flex-row flex-wrap gap-2 border-none mb-0 pb-0">
             <span className="text-sm font-medium text-default-900 flex-1">{item.name}</span>

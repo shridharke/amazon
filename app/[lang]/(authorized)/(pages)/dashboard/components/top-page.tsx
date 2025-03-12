@@ -26,6 +26,7 @@ import {
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 interface EmployeeData {
   id: string;
@@ -37,164 +38,105 @@ interface EmployeeData {
   link: string;
 }
 
-const columns: ColumnDef<EmployeeData>[] = [
-  {
-    accessorKey: "name",
-    header: "Employee",
-    cell: ({ row }) => (
-      <div className="flex gap-4">
-        <span className="text-default-600">{row.getValue("id")}</span>
-        <span>{row.getValue("name")}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "role",
-    header: "Role",
-    cell: ({ row }) => (
-      <div className="capitalize">
-        {row.getValue("role")}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "packages",
-    header: "Packages",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <span>{row.getValue("packages")}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "efficiency",
-    header: "Efficiency",
-    cell: ({ row }) => {
-      const efficiency = row.getValue("efficiency") as number;
-      return (
-        <div className={cn("flex items-center gap-1", {
-          "text-success": efficiency >= 95,
-          "text-warning": efficiency >= 85 && efficiency < 95,
-          "text-destructive": efficiency < 85
-        })}>
-          {efficiency}%
-          <Icon 
-            icon={efficiency >= 90 ? "heroicons:arrow-trending-up" : "heroicons:arrow-trending-down"} 
-            className="w-4 h-4"
-          />
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      return (
-        <div className={cn("px-2 py-1 rounded-full text-xs text-center", {
-          "bg-success/20 text-success": status === "On Target",
-          "bg-warning/20 text-warning": status === "Below Target",
-          "bg-destructive/20 text-destructive": status === "Needs Improvement"
-        })}>
-          {status}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "id",
-    header: "Action",
-    cell: ({ row }) => (
-      <Link href="#" className="text-primary hover:underline">Details</Link>
-    )
-  }
-];
+interface TopPageProps {
+  employeeData?: EmployeeData[];
+}
 
-// Sample warehouse employee data
-const employeeData: EmployeeData[] = [
-  {
-    id: "01",
-    name: "John Smith",
-    role: "Inductor",
-    packages: 1934,
-    efficiency: 97,
-    status: "On Target",
-    link: "/"
-  },
-  {
-    id: "02",
-    name: "Sarah Johnson",
-    role: "Primary Downstacker",
-    packages: 1100,
-    efficiency: 92,
-    status: "On Target",
-    link: "/"
-  },
-  {
-    id: "03",
-    name: "Mike Chen",
-    role: "Secondary Downstacker",
-    packages: 834,
-    efficiency: 94,
-    status: "On Target",
-    link: "/"
-  },
-  {
-    id: "04",
-    name: "Emily Brown",
-    role: "Stower",
-    packages: 225,
-    efficiency: 98,
-    status: "On Target",
-    link: "/"
-  },
-  {
-    id: "05",
-    name: "David Wilson",
-    role: "Stower",
-    packages: 185,
-    efficiency: 95,
-    status: "On Target",
-    link: "/"
-  },
-  {
-    id: "06",
-    name: "Lisa Anderson",
-    role: "Stower",
-    packages: 170,
-    efficiency: 89,
-    status: "Below Target",
-    link: "/"
-  },
-  {
-    id: "07",
-    name: "James Taylor",
-    role: "Stower",
-    packages: 165,
-    efficiency: 87,
-    status: "Below Target",
-    link: "/"
-  },
-  {
-    id: "08",
-    name: "Maria Garcia",
-    role: "Stower",
-    packages: 62,
-    efficiency: 75,
-    status: "Needs Improvement",
-    link: "/"
-  }
-];
-
-const EmployeePerformance = () => {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+const TopPage = ({ employeeData = [] }: TopPageProps) => {
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: 'efficiency', desc: true }
+  ]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const columns: ColumnDef<EmployeeData>[] = [
+    {
+      accessorKey: "name",
+      header: "Employee",
+      cell: ({ row }) => (
+        <div className="flex gap-4">
+          <span className="text-default-600">{row.getValue("id")}</span>
+          <span>{row.getValue("name")}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => (
+        <div className="capitalize">
+          {row.getValue("role")}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "packages",
+      header: "Packages",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <span>{row.getValue("packages")}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "efficiency",
+      header: "Efficiency",
+      cell: ({ row }) => {
+        const efficiency = row.getValue("efficiency") as number;
+        return (
+          <div className={cn("flex items-center gap-1", {
+            "text-success": efficiency >= 95,
+            "text-warning": efficiency >= 85 && efficiency < 95,
+            "text-destructive": efficiency < 85
+          })}>
+            {efficiency}%
+            <Icon 
+              icon={efficiency >= 90 ? "heroicons:arrow-trending-up" : "heroicons:arrow-trending-down"} 
+              className="w-4 h-4"
+            />
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <div className={cn("px-2 py-1 rounded-full text-xs text-center", {
+            "bg-success/20 text-success": status === "On Target",
+            "bg-warning/20 text-warning": status === "Below Target",
+            "bg-destructive/20 text-destructive": status === "Needs Improvement"
+          })}>
+            {status}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "id",
+      header: "Action",
+      cell: ({ row }) => (
+        <Link href={`/employees/${row.getValue("id")}`} className="text-primary hover:underline">Details</Link>
+      ),
+    }
+  ];
+
+  // Filter the data based on search query
+  const filteredData = React.useMemo(() => {
+    if (!searchQuery) return employeeData;
+    return employeeData.filter(employee => 
+      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      employee.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      employee.status.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [employeeData, searchQuery]);
 
   const table = useReactTable<EmployeeData>({
-    data: employeeData,
+    data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -214,6 +156,14 @@ const EmployeePerformance = () => {
 
   return (
     <>
+      <div className="p-4">
+        <Input
+          placeholder="Search employees..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full md:w-80 mb-4"
+        />
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader className="bg-default-300">
@@ -259,7 +209,7 @@ const EmployeePerformance = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  No results found.
                 </TableCell>
               </TableRow>
             )}
@@ -301,6 +251,6 @@ const EmployeePerformance = () => {
       </div>
     </>
   );
-}
+};
 
-export default EmployeePerformance;
+export default TopPage;

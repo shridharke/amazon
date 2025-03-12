@@ -9,32 +9,32 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import DashboardSelect from "@/components/dasboard-select";
 import { cn } from "@/lib/utils";
 
-// Sample data representing package handling metrics
-const totalPackagesSeries = [
-  {
-    data: [1850, 1920, 1760, 2100, 2300, 1890, 1750, 1980, 2250, 1900],
-  },
-];
+interface ReportsSnapshotProps {
+  metrics?: {
+    total: {
+      series: { data: number[] }[];
+      dates: string[];
+      current: number;
+    };
+    inductor: {
+      series: { data: number[] }[];
+      dates: string[];
+      current: number;
+    };
+    stower: {
+      series: { data: number[] }[];
+      dates: string[];
+      current: number;
+    };
+    downstacker: {
+      series: { data: number[] }[];
+      dates: string[];
+      current: number;
+    };
+  };
+}
 
-const inductorSeries = [
-  {
-    data: [1850, 1920, 1760, 2100, 2300, 1890, 1750, 1980, 2250, 1900],
-  },
-];
-
-const stowerSeries = [
-  {
-    data: [170, 185, 165, 195, 210, 180, 165, 190, 205, 175],
-  },
-];
-
-const downstackerSeries = [
-  {
-    data: [950, 1020, 890, 1100, 1200, 980, 920, 1050, 1150, 980],
-  },
-];
-
-const ReportsSnapshot = () => {
+const ReportsSnapshot = ({ metrics }: ReportsSnapshotProps) => {
   const { theme: config, setTheme: setConfig } = useThemeStore();
   const { theme: mode } = useTheme();
   const theme = themes.find((theme) => theme.name === config);
@@ -44,29 +44,37 @@ const ReportsSnapshot = () => {
   const success = `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].success})`;
   const info = `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].info})`;
 
+  // If no metrics provided, use empty data
+  const emptyData = [{ data: [] }];
+  
+  const totalSeries = metrics?.total?.series || emptyData;
+  const inductorSeries = metrics?.inductor?.series || emptyData;
+  const stowerSeries = metrics?.stower?.series || emptyData;
+  const downstackerSeries = metrics?.downstacker?.series || emptyData;
+
   const tabsTrigger = [
     {
       value: "total",
       text: "Total Packages",
-      total: "1,934",
+      total: metrics?.total?.current?.toLocaleString() || "0",
       color: "primary",
     },
     {
       value: "inductor",
       text: "Inductor Rate",
-      total: "1,934",
+      total: metrics?.inductor?.current?.toLocaleString() || "0",
       color: "warning",
     },
     {
       value: "stower",
       text: "Avg Stower Rate",
-      total: "185",
+      total: metrics?.stower?.current?.toLocaleString() || "0",
       color: "success",
     },
     {
       value: "downstacker",
       text: "Downstacker Rate",
-      total: "967",
+      total: metrics?.downstacker?.current?.toLocaleString() || "0", 
       color: "info",
     },
   ];
@@ -74,22 +82,26 @@ const ReportsSnapshot = () => {
   const tabsContentData = [
     {
       value: "total",
-      series: totalPackagesSeries,
+      series: totalSeries,
+      dates: metrics?.total?.dates || [],
       color: primary,
     },
     {
       value: "inductor",
       series: inductorSeries,
+      dates: metrics?.inductor?.dates || [],
       color: warning,
     },
     {
       value: "stower",
       series: stowerSeries,
+      dates: metrics?.stower?.dates || [],
       color: success,
     },
     {
       value: "downstacker",
       series: downstackerSeries,
+      dates: metrics?.downstacker?.dates || [],
       color: info,
     },
   ];
@@ -150,7 +162,7 @@ const ReportsSnapshot = () => {
           </TabsList>
           {tabsContentData.map((item, index) => (
             <TabsContent key={`report-tab-${index}`} value={item.value}>
-              <ReportsChart series={item.series} chartColor={item.color} />
+              <ReportsChart series={item.series} chartColor={item.color} categories={item.dates} />
             </TabsContent>
           ))}
         </Tabs>
