@@ -1,27 +1,25 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import listPlugin from "@fullcalendar/list";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRouter } from "next/navigation";
-import { Loader2, Package, Users, Calendar, Clock, ArrowRightCircle } from "lucide-react";
-import {
-  CalendarEvent,
-  ScheduleInfo,
-  CreateScheduleRequest,
-  APIResponse
-} from "@/types/schedule";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  APIResponse,
+  CalendarEvent,
+  ScheduleInfo
+} from "@/types/schedule";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import { ArrowRightCircle, Calendar, Clock, Loader2, Package, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 
 interface Employee {
   id: number;
@@ -42,67 +40,6 @@ export default function CalendarView() {
   const [fixedEmployees, setFixedEmployees] = useState<Employee[]>([]);
   const [remainingPackages, setRemainingPackages] = useState(0);
   const [totalEfficiency, setTotalEfficiency] = useState(0);
-
-  const getEventClassName = (status: string | undefined): string => {
-    if (!status) return 'schedule-draft';
-    
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return 'schedule-draft';
-      case 'confirmed':
-        return 'schedule-confirmed';
-      case 'in_progress':
-        return 'schedule-in_progress';
-      case 'completed':
-        return 'schedule-completed';
-      default:
-        return 'schedule-draft';
-    }
-  };
-  
-  const transformSchedules = (data: any[]): CalendarEvent[] => {
-    if (!Array.isArray(data)) return [];
-  
-    return data.map(item => {
-      // Check if the item is already in CalendarEvent format
-      if (item.extendedProps && item.start && item.end) {
-        // It's already in the right format, return as is
-        return item;
-      }
-      
-      // Otherwise, it's a ScheduleInfo and needs transformation
-      if (!item) return null;
-  
-      const id = item.id?.toString() || '';
-      const title = getEventTitle(item);
-      const date = item.date ? new Date(item.date) : new Date();
-      const className = getEventClassName(item.status);
-  
-      return {
-        id,
-        title,
-        start: date,
-        end: date,
-        allDay: true,
-        className,
-        extendedProps: {
-          scheduleId: item.id,
-          status: item.status,
-          totalPackages: item.shift?.totalPackages || 0,
-          completedPackages: item.shift?.completedCount || 0,
-          hasActiveVet: item.vet?.status === 'OPEN'
-        }
-      };
-    }).filter((event): event is CalendarEvent => event !== null);
-  };
-  
-  const getEventTitle = (schedule: ScheduleInfo): string => {
-    if (!schedule || !schedule.shift) return 'No packages';
-    
-    const packages = schedule.shift.totalPackages || 0;
-    const completed = schedule.shift.completedCount || 0;
-    return `Packages: ${completed}/${packages}`;
-  };
 
   const fetchFixedEmployees = async (date: Date): Promise<void> => {
     try {
@@ -152,7 +89,7 @@ export default function CalendarView() {
       }
       
       setFixedEmployees(fixedEmps);
-      const totalEff = fixedEmps.reduce((sum: number, emp: Employee) => sum + (emp.efficiency || 0), 0);
+      const totalEff = fixedEmps.reduce((sum: number, emp: Employee) => sum + (emp.efficiency * 5 || 0), 0);
       setTotalEfficiency(totalEff);
     } catch (error) {
       console.error('Error fetching fixed employees:', error);
@@ -495,11 +432,10 @@ const handleVETAction = async (action: 'start' | 'close') => {
                   >
                     <div className="flex justify-between items-center">
                       <p>{emp.name}</p>
-                      <Badge color="secondary" variant="soft">ID: {emp.id}</Badge>
                     </div>
                     <div className="mt-1 flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Efficiency</span>
-                      <span>{emp.efficiency}</span>
+                      <span>{emp.efficiency * 5}</span>
                     </div>
                   </div>
                 ))}
@@ -627,7 +563,7 @@ const handleVETAction = async (action: 'start' | 'close') => {
                     </div>
                     <div className="mt-1 flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Efficiency</span>
-                      <span>{emp.efficiency}</span>
+                      <span>{emp.efficiency * 5}</span>
                     </div>
                   </div>
                 ))}
@@ -695,7 +631,7 @@ const handleVETAction = async (action: 'start' | 'close') => {
             <p className="font-medium">{emp.name}</p>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground">Efficiency:</span>
-              <span className="font-medium">{emp.efficiency.toFixed(0)}</span>
+              <span className="font-medium">{(emp.efficiency * 5).toFixed(0)}</span>
             </div>
           </div>
         </div>
