@@ -1,0 +1,285 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  orgs      Organization[]
+  role      UserRole       @default(MANAGER)
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Organization {
+  id                  Int             @id @default(autoincrement())
+  name                String
+  shiftStartTime      String          @default("09:00") // Format: "HH:MM"
+  shiftDuration       Int             @default(5) // Duration in hours
+  users               User[]
+  employees           Employee[]
+  packages            Package[]
+  schedules           Schedule[]
+  shifts              Shift[]
+  performanceRecords  PerformanceRecord[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@map("orgs")
+}
+
+enum EmployeeType {
+  FIXED
+  FLEX
+}
+
+model Employee {
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  name               String
+  type               EmployeeType
+  organizationId     Int
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  avgEfficiency      Float               @default(110.0)
+  inductorEff        Float               @default(110.0)
+  stowerEff          Float               @default(110.0)
+  downstackerEff     Float               @default(110.0)
+  workDays           String?             // For FIXED employees, JSON string of weekdays
+  scheduleEmployee   ScheduleEmployee[]
+  performanceRecords PerformanceRecord[]
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([organizationId, id])
+  @@map("employees")
+}
+
+model Package {
+  id             Int          @id @default(autoincrement())
+  date           DateTime
+  totalCount     Int
+  completedCount Int          @default(0)
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         PackageStatus @default(SCHEDULED)
+  shift          Shift?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, date])
+  @@map("packages")
+}
+
+enum PackageStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Schedule {
+  id               Int                 @id @default(autoincrement())
+  date             DateTime
+  organizationId   Int
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status           ScheduleStatus      @default(DRAFT)
+  calculatedAt     DateTime?
+  confirmedAt      DateTime?
+  closedAt         DateTime?
+  scheduleEmployee ScheduleEmployee[]
+  vet              VET[]
+  vto              VTO[]
+  shift            Shift?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([organizationId, date])
+  @@map("schedules")
+}
+
+enum ScheduleStatus {
+  DRAFT
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model ScheduleEmployee {
+  id                 Int                     @id @default(autoincrement())
+  scheduleId         Int
+  schedule           Schedule                @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  employeeId         Int
+  employee           Employee                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  task               EmployeeTask?
+  status             EmployeeScheduleStatus  @default(SCHEDULED)
+  efficiency         Float?
+  performanceRecords PerformanceRecord[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@unique([scheduleId, employeeId])
+  @@map("schedule_employees")
+}
+
+enum EmployeeTask {
+  STOWER
+  DOWNSTACKER
+  INDUCTOR
+}
+
+enum EmployeeScheduleStatus {
+  SCHEDULED
+  CONFIRMED
+  DECLINED
+}
+
+model VET {
+  id                Int        @id @default(autoincrement())
+  scheduleId        Int
+  schedule          Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  openedAt          DateTime   @default(now())
+  closedAt          DateTime?
+  status            VETStatus  @default(OPEN)
+  targetPackageCount Int
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@map("vet")
+}
+
+enum VETStatus {
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
+model VTO {
+  id           Int        @id @default(autoincrement())
+  scheduleId   Int
+  schedule     Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  openedAt     DateTime   @default(now())
+  closedAt     DateTime?
+  status       VTOStatus  @default(OPEN)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("vto")
+}
+
+enum VTOStatus {
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
+model Shift {
+  id                 Int                 @id @default(autoincrement())
+  scheduleId         Int                 @unique
+  schedule           Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  packageId          Int?                @unique
+  package            Package?            @relation(fields: [packageId], references: [id])
+  organizationId     Int
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  date               DateTime
+  dayOfWeek          String              // "Monday", "Tuesday", etc.
+  startTime          DateTime
+  endTime            DateTime?
+  totalPackages      Int
+  status             ShiftStatus         @default(IN_PROGRESS)
+  performanceRecords PerformanceRecord[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@map("shifts")
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model PerformanceRecord {
+  id                 Int               @id @default(autoincrement())
+  shiftId            Int
+  shift              Shift             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  employeeId         Int
+  employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  scheduleEmployeeId Int
+  scheduleEmployee   ScheduleEmployee  @relation(fields: [scheduleEmployeeId], references: [id], onDelete: Cascade)
+  organizationId     Int
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  task               EmployeeTask
+  packagesHandled    Int
+  workingHours       Int               @default(5)
+  date               DateTime
+  dayOfWeek          String            // "Monday", "Tuesday", etc.
+  totalPackages      Int               // Total packages handled in this shift
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@unique([shiftId, employeeId])
+  @@map("performance_records")
+}
