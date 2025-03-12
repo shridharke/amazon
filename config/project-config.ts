@@ -29,8 +29,3 @@ export const getComments = async () => {
   const response = await api.get(`/comments`);
   return response.data;
 };
-
-export const postComment = async (comment: Comment) => {
-  const response = await api.post("/comments", comment);
-  return response.data;
-};
