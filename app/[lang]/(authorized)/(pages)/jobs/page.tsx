@@ -71,15 +71,6 @@ interface Schedule {
     totalPackages: number;
     completedCount: number;
   };
-  vet?: {
-    id: number;
-    status: string;
-    targetPackageCount: number;
-    remainingCount: number;
-    openedAt: string;
-    closedAt?: string;
-    scheduleId: number;
-  };
   fixedEmployeesEfficiency: number;
   remainingPackages: number;
 }
@@ -452,15 +443,11 @@ const TaskAllocationPage: React.FC = () => {
     let inductorEfficiency = 0;
     let downstackerEfficiency = 0;
     let stowerEfficiency = 0;
-
-    console.log("Plan - ", plan);
     
     // Calculate inductor total efficiency
     plan.Inductor.forEach(emp => {
       const employee = findEmployeeById(emp["Employee ID"]);
-      console.log("Employee - ", employee);
       if (employee) {
-        // Use the employee's specific efficiency for inductor role
         inductorEfficiency += calculatePerformance(employee, "INDUCTOR") / 5;
       }
     });
@@ -469,7 +456,6 @@ const TaskAllocationPage: React.FC = () => {
     plan.Downstackers.forEach(emp => {
       const employee = findEmployeeById(emp["Employee ID"]);
       if (employee) {
-        // Use the employee's specific efficiency for downstacker role
         downstackerEfficiency += calculatePerformance(employee, "DOWNSTACKER") /5;
       }
     });
@@ -478,33 +464,21 @@ const TaskAllocationPage: React.FC = () => {
     plan.Stowers.forEach(emp => {
       const employee = findEmployeeById(emp["Employee ID"]);
       if (employee) {
-        // Use the employee's specific efficiency for stower role
         stowerEfficiency += calculatePerformance(employee, "STOWER")/5;
       }
     });
-
-    console.log("inductorEfficiency", inductorEfficiency);
-    console.log("downstackerEfficiency", downstackerEfficiency);
-    console.log("stowerEfficiency", stowerEfficiency);
     
     // Calculate time needed for each task type (packages / total efficiency)
     const inductorTime = inductorEfficiency > 0 ? totalPackages / inductorEfficiency : Infinity;
     const downstackerTime = downstackerEfficiency > 0 ? totalPackages / downstackerEfficiency : Infinity;
     const stowerTime = stowerEfficiency > 0 ? totalPackages / stowerEfficiency : Infinity;
-
-    console.log("inductorTime", inductorTime);
-    console.log("downstackerTime", downstackerTime);
-    console.log("stowerTime", stowerTime);
     
     // Get the maximum time (bottleneck)
-    // const maxTime = Math.min(inductorTime, downstackerTime, stowerTime);
     const maxTime = inductorTime;
     
     if (maxTime === Infinity) {
       return "N/A";
     }
-
-    console.log("maxTime", maxTime);
     
     // Format as hours and minutes
     const hours = Math.floor(maxTime);
@@ -516,12 +490,10 @@ const TaskAllocationPage: React.FC = () => {
   // Render different content based on active tab
   const renderTabContent = () => {
     switch (activeTab) {
+      case "employees":
+        return renderEmployees();
       case "task-allocation":
         return renderTaskAllocation();
-      case "vet-vto":
-        return renderVetVtoManagement();
-      case "dashboard":
-        return renderDashboard();
       default:
         return renderTaskAllocation();
     }
@@ -750,17 +722,110 @@ const TaskAllocationPage: React.FC = () => {
     );
   };
 
-  // Placeholder for VET/VTO management tab
-  const renderVetVtoManagement = () => {
+  // Render employees tab
+  const renderEmployees = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <CircularProgress value={50} loading />
+        </div>
+      );
+    }
+    
+    if (!schedule) {
+      return (
+        <Alert color="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No schedule found</AlertTitle>
+          <AlertDescription>
+            No schedule exists for the selected date. Please create a schedule first.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    if (scheduledEmployees.length === 0) {
+      return (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No employees scheduled</AlertTitle>
+          <AlertDescription>
+            No employees are scheduled for this date. Please add employees to the schedule.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
     return (
       <Card>
         <CardHeader>
-          <CardTitle>VET/VTO Management</CardTitle>
+          <CardTitle>
+            Scheduled Employees
+            {date && <span className="ml-2 text-muted-foreground">({formatDate(date)})</span>}
+          </CardTitle>
+          <CardDescription>
+            All employees scheduled for this day with their assigned tasks
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-6 text-center">
-            <p className="text-muted-foreground">VET/VTO Management tab content will be implemented here.</p>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Employee</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Assigned Task</TableHead>
+                <TableHead>Efficiency</TableHead>
+                <TableHead>Estimated Output</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {scheduledEmployees.map(employee => {
+                const currentTask = taskAssignments[employee.id] || employee.task;
+                
+                return (
+                  <TableRow key={employee.id}>
+                    <TableCell>{employee.id}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{employee.name}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={employee.type === "FIXED" ? "default" : "success"}>
+                        {employee.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {currentTask ? (
+                        <Badge color={getTaskColor(currentTask)}>{getTaskName(currentTask)}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">Not assigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {currentTask && getEfficiencyDisplay(employee, currentTask)}
+                    </TableCell>
+                    <TableCell>
+                      {currentTask ? (
+                        <div>
+                          {calculatePerformance(employee, currentTask)} units
+                        </div>
+                      ) : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={
+                        employee.status === "CONFIRMED" ? "success" : 
+                        employee.status === "DECLINED" ? "destructive" : 
+                        "warning"
+                      }>
+                        {employee.status || "SCHEDULED"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     );
@@ -830,10 +895,9 @@ const TaskAllocationPage: React.FC = () => {
         </Card>
         
         <Tabs defaultValue="task-allocation" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 mb-6">
+          <TabsList className="grid grid-cols-2 mb-6">
+          <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="task-allocation">Task Allocation</TabsTrigger>
-            <TabsTrigger value="vet-vto">VET/VTO Management</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           </TabsList>
           
           <TabsContent value={activeTab} className="mt-0">
