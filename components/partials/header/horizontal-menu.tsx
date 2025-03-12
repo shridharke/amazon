@@ -186,3 +186,6 @@ const ListItem = React.forwardRef<HTMLAnchorElement, any>(
     </NavigationMenu.Link>
   )
 );
+
+// Add display name to fix the react/display-name error
+ListItem.displayName = "ListItem";

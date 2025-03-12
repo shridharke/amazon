@@ -169,7 +169,7 @@ const EmployeeList = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete the employee "{employeeToDelete?.name}". This action cannot be undone.
+              This will delete the employee &ldquo;{employeeToDelete?.name}&rdquo;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
