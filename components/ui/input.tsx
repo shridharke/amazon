@@ -1,7 +1,13 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { InputColor, InputVariant, Radius, Shadow } from "@/lib/type";
+
+// Define the types directly in this file instead of importing them
+type InputColor = 'default' | 'primary' | 'info' | 'warning' | 'success' | 'destructive';
+type InputVariant = 'flat' | 'underline' | 'bordered' | 'faded' | 'ghost' | 'flat-underline';
+type Radius = 'none' | 'sm' | 'md' | 'lg' | 'xl';
+type Shadow = 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type InputSize = 'sm' | 'md' | 'lg' | 'xl';
 
 //py-[10px]
 export const inputVariants = cva(
@@ -115,15 +121,14 @@ export const inputVariants = cva(
 );
 
 export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement>,
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
   VariantProps<typeof inputVariants> {
-
   removeWrapper?: boolean
   color?: InputColor
   variant?: InputVariant
   radius?: Radius
   shadow?: Shadow
-  size?: any
+  size?: InputSize
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(

@@ -4,9 +4,12 @@ import { Circle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
-import { color } from "@/lib/type";
+
+// Define the color type directly here instead of importing it
+type color = 'primary' | 'info' | 'warning' | 'success' | 'destructive' | 'secondary';
+
 const radioVariants = cva(
-  "aspect-square h-5 w-5 rounded-full border border-default-400  data-[state=checked]:text-default-700  ring-offset-background  focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-default-100 disabled:border-default-400 disabled:opacity-50 [&_svg]:fill-current [&_svg]:text-current ",
+  "aspect-square h-5 w-5 rounded-full border border-default-400 data-[state=checked]:text-default-700 ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-default-100 disabled:border-default-400 disabled:opacity-50 [&_svg]:fill-current [&_svg]:text-current",
   {
     variants: {
       color: {
@@ -51,6 +54,7 @@ const radioVariants = cva(
     },
   }
 );
+
 const RadioGroup = React.forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
@@ -68,12 +72,12 @@ RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
 interface RadioGroupItemProps extends React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>,
   VariantProps<typeof radioVariants> {
   icon?: React.ReactNode;
-  color?: color
-
+  color?: color;
 }
-const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimitive.Item>,
-  RadioGroupItemProps
 
+const RadioGroupItem = React.forwardRef<
+  React.ElementRef<typeof RadioGroupPrimitive.Item>,
+  RadioGroupItemProps
 >(
   (
     {
@@ -91,7 +95,7 @@ const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimit
     return (
       <>
         {children ? (
-          <div className="flex items-center  gap-2">
+          <div className="flex items-center gap-2">
             <RadioGroupPrimitive.Item
               ref={ref}
               className={cn(

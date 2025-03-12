@@ -17,13 +17,34 @@ import MenuOverlayPortal from "./MenuOverlayPortal";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Define proper types for menu items
+type NestedMenuItem = {
+  title: string;
+  href: string;
+  child?: NestedMenuItem[];
+};
+
+type MenuItem = {
+  title: string;
+  href?: string;
+  icon?: any;
+  child?: MenuChild[];
+};
+
+type MenuChild = {
+  title: string;
+  href: string;
+  icon?: any;
+  nested?: NestedMenuItem[];
+};
+
 const ModuleSidebar = ({ trans }: { trans: any }) => {
-  const menus = menusConfig?.sidebarNav?.modern || [];
+  const menus = menusConfig?.sidebarNav?.modern || [] as MenuItem[];
   const { subMenu, setSubmenu, collapsed, setCollapsed, sidebarBg } =
     useSidebar();
   const { isRtl } = useThemeStore();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [currentSubMenu, setCurrentSubMenu] = useState<any[]>([]);
+  const [currentSubMenu, setCurrentSubMenu] = useState<MenuChild[]>([]);
   const [nestedIndex, setNestedIndex] = useState<number | null>(null);
   const [multiNestedIndex, setMultiNestedIndex] = useState<number | null>(null);
   // mobile menu overlay
@@ -32,14 +53,13 @@ const ModuleSidebar = ({ trans }: { trans: any }) => {
   const isMobile = useMediaQuery("(min-width: 768px)");
 
   // location
-
   const pathname = usePathname();
   const locationName = getDynamicPath(pathname);
 
   const toggleSubMenu = (index: number) => {
     setActiveIndex(index);
     if (menus[index].child) {
-      setCurrentSubMenu(menus[index].child);
+      setCurrentSubMenu(menus[index]);
       setSubmenu(false);
       setCollapsed(false);
       if (!isDesktop) {
@@ -75,13 +95,14 @@ const ModuleSidebar = ({ trans }: { trans: any }) => {
     }
   };
 
-  function setActiveMenu(menuIndex: number, childMenu: any) {
+  function setActiveMenu(menuIndex: number, childMenu: MenuChild[]) {
     setActiveIndex(menuIndex);
     setCurrentSubMenu(childMenu);
     setSubmenu(false);
     setCollapsed(false);
   }
-  function setActiveNestedMenu(menuIndex: number, nestedMenuIndex: number, childMenu: any) {
+  
+  function setActiveNestedMenu(menuIndex: number, nestedMenuIndex: number, childMenu: MenuChild[]) {
     setActiveIndex(menuIndex);
     setNestedIndex(nestedMenuIndex);
     setCurrentSubMenu(childMenu);
