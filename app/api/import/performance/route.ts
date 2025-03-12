@@ -56,7 +56,7 @@ export const POST = auth(async (request) => {
     
     return NextResponse.json({
       message: "Performance data imported successfully",
-      stats: { ...result, efficiencyUpdates: efficiencyStats }
+      stats: { efficiencyUpdates: efficiencyStats }
     }, { status: 200 });
   } catch (error) {
     console.error("Failed to import performance data:", error);
@@ -403,16 +403,21 @@ async function updateEmployeeEfficiencies(organizationId: number) {
         
         console.log(`Calculated efficiencies for ${employee.id}: Inductor: ${inductorEff}, Stower: ${stowerEff}, Downstacker: ${downstackerEff}, Average: ${avgEff}`);
           
+        const stowerEffFinal = stowerEff / 5;
+        const inductorEffFinal = inductorEff / 5;
+        const downstackerEffFinal = downstackerEff / 5;
+        const avgEffFinal = avgEff / 5;
+
         // Update employee
         await prisma.employee.update({
           where: {
             id: employee.id
           },
           data: {
-            inductorEff,
-            stowerEff,
-            downstackerEff,
-            avgEfficiency: avgEff
+            inductorEff: inductorEffFinal,
+            stowerEff: stowerEffFinal,
+            downstackerEff: downstackerEffFinal,
+            avgEfficiency: avgEffFinal
           }
         });
         

@@ -1,3 +1,4 @@
+// app/api/schedules/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ScheduleStatus, VETStatus, ShiftStatus } from '@prisma/client';
@@ -73,6 +74,9 @@ export async function GET(
         task: se.task!,
         efficiency: se.efficiency || 0,
         status: se.status,
+        stowerEff: se.employee.stowerEff || 45,
+        inductorEff: se.employee.inductorEff || 230,
+        downstackerEff: se.employee.downstackerEff || 150,
       })),
       vet: schedule.vet[0] ? {
         id: schedule.vet[0].id,

@@ -2,6 +2,7 @@
 
 import { formatISO, parseISO } from "date-fns";
 import { EmployeeTask, EmployeeType, ScheduleStatus } from "@prisma/client";
+import toast from "react-hot-toast";
 
 // Types for our schedule data
 export interface ScheduleData {
@@ -342,5 +343,227 @@ export async function getShiftPerformance(shiftId: number) {
   } catch (error) {
     console.error("Error fetching shift performance:", error);
     return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+
+export interface Schedule {
+  id: number;
+  date: string;
+  status: string;
+  employees: Employee[];
+  shift?: {
+    id: number;
+    status: string;
+    totalPackages: number;
+    completedCount: number;
+  };
+  vet?: {
+    id: number;
+    status: string;
+    targetPackageCount: number;
+    remainingCount: number;
+    openedAt: string;
+    closedAt?: string;
+    scheduleId: number;
+  };
+  fixedEmployeesEfficiency: number;
+  remainingPackages: number;
+}
+
+export interface Employee {
+  id: number;
+  name: string;
+  type: string;
+  task?: string;
+  efficiency: number;
+  status?: string;
+  avgEfficiency?: number;
+  inductorEff?: number;
+  stowerEff?: number;
+  downstackerEff?: number;
+}
+
+export interface ScheduleEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  className: string;
+  extendedProps: {
+    scheduleId: number;
+    status: string;
+    totalPackages: number;
+    completedPackages: number;
+    hasActiveVet: boolean;
+  };
+}
+
+export class ScheduleService {
+  // Get all schedules for a date range
+  static async getSchedules(
+    organizationId: number, 
+    startDate: string, 
+    endDate: string
+  ): Promise<ScheduleEvent[]> {
+    try {
+      const response = await fetch(
+        `/api/schedules?organizationId=${organizationId}&start=${startDate}&end=${endDate}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch schedules");
+      }
+
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      toast.error("Failed to fetch schedules");
+      throw error;
+    }
+  }
+
+  // Get a specific schedule by ID
+  static async getScheduleById(scheduleId: number): Promise<Schedule> {
+    try {
+      const response = await fetch(`/api/schedules/${scheduleId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch schedule");
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      toast.error("Failed to fetch schedule details");
+      throw error;
+    }
+  }
+
+  // Create a new schedule
+  static async createSchedule(
+    organizationId: number,
+    date: string,
+    packageCount: number
+  ): Promise<Schedule> {
+    try {
+      const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId,
+          date,
+          packageCount,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create schedule");
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      toast.error("Failed to create schedule");
+      throw error;
+    }
+  }
+
+  // Start VET for a schedule
+  static async startVET(
+    scheduleId: number,
+    targetPackageCount: number
+  ): Promise<any> {
+    try {
+      const response = await fetch(`/api/schedules/${scheduleId}/vet`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetPackageCount,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start VET");
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error starting VET:", error);
+      toast.error("Failed to start VET");
+      throw error;
+    }
+  }
+
+  // Close VET for a schedule
+  static async closeVET(scheduleId: number): Promise<any> {
+    try {
+      const response = await fetch(`/api/schedules/${scheduleId}/vet`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to close VET");
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error closing VET:", error);
+      toast.error("Failed to close VET");
+      throw error;
+    }
+  }
+
+  // Confirm employee for VET
+  static async confirmVET(
+    scheduleId: number,
+    employeeId: number
+  ): Promise<any> {
+    try {
+      const response = await fetch(`/api/schedules/${scheduleId}/vet/confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to confirm VET");
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error confirming VET:", error);
+      toast.error("Failed to confirm VET");
+      throw error;
+    }
   }
 }
