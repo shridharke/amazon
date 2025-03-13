@@ -25,8 +25,8 @@ import {
 } from "@/components/ui/table";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface EmployeeData {
   id: string;
@@ -35,7 +35,6 @@ interface EmployeeData {
   packages: number;
   efficiency: number;
   status: string;
-  link: string;
 }
 
 interface TopPageProps {
@@ -65,18 +64,25 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
     {
       accessorKey: "role",
       header: "Role",
-      cell: ({ row }) => (
-        <div className="capitalize">
-          {row.getValue("role")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const role = row.getValue("role") as string;
+        const badgeClass = role === 'INDUCTOR' ? 'bg-primary text-primary-foreground' :
+                           role === 'STOWER' ? 'bg-warning text-warning-foreground' :
+                           'bg-info text-info-foreground';
+        
+        return (
+          <Badge className={cn("capitalize font-normal", badgeClass)}>
+            {role.toLowerCase()}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "packages",
-      header: "Packages",
+      header: "Packages Handled",
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
-          <span>{row.getValue("packages")}</span>
+          <span>{parseInt(row.getValue("packages")) * 5}</span>
         </div>
       ),
     },
@@ -91,7 +97,7 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
             "text-warning": efficiency >= 85 && efficiency < 95,
             "text-destructive": efficiency < 85
           })}>
-            {efficiency}%
+            {row.getValue("packages")} units/hr
             <Icon 
               icon={efficiency >= 90 ? "heroicons:arrow-trending-up" : "heroicons:arrow-trending-down"} 
               className="w-4 h-4"
@@ -106,7 +112,7 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
         return (
-          <div className={cn("px-2 py-1 rounded-full text-xs text-center", {
+          <div className={cn("px-2 py-1 rounded-full text-xs text-center w-[120px]", {
             "bg-success/20 text-success": status === "On Target",
             "bg-warning/20 text-warning": status === "Below Target",
             "bg-destructive/20 text-destructive": status === "Needs Improvement"
@@ -115,13 +121,6 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
           </div>
         );
       },
-    },
-    {
-      accessorKey: "id",
-      header: "Action",
-      cell: ({ row }) => (
-        <Link href={`/employees/${row.getValue("id")}`} className="text-primary hover:underline">Details</Link>
-      ),
     }
   ];
 
@@ -156,13 +155,16 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
 
   return (
     <>
-      <div className="p-4">
+      <div className="p-4 flex flex-wrap justify-between items-center">
         <Input
           placeholder="Search employees..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-80 mb-4"
+          className="w-full md:w-80"
         />
+        <div className="mt-2 md:mt-0 text-sm text-default-600">
+          Showing {filteredData.length} of {employeeData.length} employees
+        </div>
       </div>
       <div className="overflow-x-auto">
         <Table>
@@ -172,7 +174,7 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
                 {headerGroup.headers.map((header, index) => (
                   <TableHead
                     key={`employee-header-${index}`}
-                    className="text-sm font-semibold text-default-600 bg-default-200 h-12 last:text-end last:pr-7"
+                    className="text-sm font-semibold text-default-600 bg-default-200 h-12"
                   >
                     {header.isPlaceholder
                       ? null
@@ -196,7 +198,7 @@ const TopPage = ({ employeeData = [] }: TopPageProps) => {
                   {row.getVisibleCells().map((cell, index) => (
                     <TableCell
                       key={`employee-cell-${index}`}
-                      className="text-sm text-default-700 border-b border-default-100 dark:border-default-200 last:text-end last:pr-6"
+                      className="text-sm text-default-700 border-b border-default-100 dark:border-default-200"
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

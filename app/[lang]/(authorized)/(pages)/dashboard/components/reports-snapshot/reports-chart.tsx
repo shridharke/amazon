@@ -13,7 +13,7 @@ interface ReportsChartProps {
   height?: number;
 }
 
-const ReportsChart = ({ series, chartColor, categories = [], height = 250 }: ReportsChartProps) => {
+const ReportsChart = ({ series, chartColor, categories = [], height = 300 }: ReportsChartProps) => {
   const { isRtl } = useThemeStore();
   const { theme: mode } = useTheme();
 

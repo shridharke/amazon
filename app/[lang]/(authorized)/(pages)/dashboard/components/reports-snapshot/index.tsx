@@ -118,9 +118,6 @@ const ReportsSnapshot = ({ metrics }: ReportsSnapshotProps) => {
               Daily performance across all roles
             </span>
           </div>
-          <div className="flex-none">
-            <DashboardSelect />
-          </div>
         </div>
       </CardHeader>
       <CardContent className="p-1 md:p-5">

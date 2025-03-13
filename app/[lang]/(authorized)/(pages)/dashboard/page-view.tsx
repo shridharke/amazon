@@ -2,16 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportsSnapshot from "./components/reports-snapshot";
 import StowerPerformanceReport from "./components/user-device-report";
 import RoleStats from "./components/user-stats-chart";
 import UsersStat from "./components/users-stat";
 import ReportsArea from "./components/reports-area";
 import TopPage from "./components/top-page";
+import DatePickerWithRange from "@/components/date-picker-with-range";
 import { DateRange } from "react-day-picker";
-import { addDays, subDays } from "date-fns";
+import { addDays, subDays, format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import DatePickerWithRange from './date-picker-with-range';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import EfficiencyComparisonChart from './components/user-device-report';
+import RoleDistributionChart from './components/user-device-report';
+import TaskCompletionChart from './components/user-device-report';
 
 // Define the metrics interface to match the API response structure
 interface DashboardMetrics {
@@ -39,6 +50,8 @@ interface DashboardMetrics {
   };
   employeeStats: {
     active: number;
+    fixed: number;
+    flex: number;
     roles: {
       inductors: number;
       stowers: number;
@@ -75,8 +88,30 @@ interface DashboardMetrics {
     packages: number;
     efficiency: number;
     status: string;
-    link: string;
   }[];
+  roleDistributionData: {
+    inductor: number;
+    stower: number;
+    downstacker: number;
+    unassigned: number;
+  };
+  efficiencyData: {
+    current: {
+      inductor: number;
+      stower: number;
+      downstacker: number;
+    };
+    target: {
+      inductor: number;
+      stower: number;
+      downstacker: number;
+    };
+  };
+  taskCompletionData: {
+    completed: number;
+    inProgress: number;
+    scheduled: number;
+  };
 }
 
 const DashboardPageView = () => {
@@ -87,17 +122,32 @@ const DashboardPageView = () => {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
-
+  const [taskFilter, setTaskFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("overall");
+  
+  // Then update your useEffect that fetches data
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Format dates for API call
-        const fromDate = dateRange?.from?.toISOString().split('T')[0];
-        const toDate = dateRange?.to?.toISOString().split('T')[0];
+        // Format dates for API call with explicit date formatting
+        let fromDateStr = '';
+        let toDateStr = '';
         
-        const response = await fetch(`/api/dashboard?from=${fromDate}&to=${toDate}`);
+        if (dateRange?.from) {
+          // Format date as YYYY-MM-DD without timezone conversion
+          fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
+        }
+        
+        if (dateRange?.to) {
+          // Format date as YYYY-MM-DD without timezone conversion
+          toDateStr = format(dateRange.to, 'yyyy-MM-dd');
+        }
+        
+        console.log(`Fetching data for range: ${fromDateStr} to ${toDateStr}`);
+        
+        const response = await fetch(`/api/dashboard?from=${fromDateStr}&to=${toDateStr}&task=${taskFilter}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');
@@ -117,10 +167,15 @@ const DashboardPageView = () => {
     };
 
     fetchDashboardData();
-  }, [dateRange, toast]);
+  }, [dateRange, toast, taskFilter]);
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
+    console.log('Date range changed:', range);
     setDateRange(range);
+  };
+
+  const handleTaskFilterChange = (value: string) => {
+    setTaskFilter(value);
   };
 
   return (
@@ -129,69 +184,94 @@ const DashboardPageView = () => {
         <div className="text-2xl font-medium text-default-800">
           Warehouse Performance Metrics Dashboard
         </div>
-        <DatePickerWithRange value={dateRange} onChange={handleDateRangeChange} />
+        <div className="flex gap-4">
+          <DatePickerWithRange value={dateRange} onChange={handleDateRangeChange} />
+        </div>
       </div>
       
-      {loading ? (
-        <div className="flex justify-center items-center h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <>
-          {/* Package Metrics Overview */}
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-8">
-              <ReportsSnapshot metrics={metrics?.packageMetrics} />
+      <Tabs defaultValue="overall" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="overall">Overall Efficiency</TabsTrigger>
+          <TabsTrigger value="daily" disabled={false}>Daily Performance</TabsTrigger>
+        </TabsList>
+      
+        <TabsContent value="overall">
+          {loading ? (
+            <div className="flex justify-center items-center h-[50vh]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
-            <div className="col-span-12 lg:col-span-4">
-              <UsersStat employeeStats={metrics?.employeeStats} />
-            </div>
-          </div>
-
-          {/* Role Performance Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ReportsArea metrics={metrics?.keyMetrics} />
-            </div>
-            <Card>
-              <CardHeader className="border-none p-6 pt-5 mb-0">
-                <CardTitle className="text-lg font-semibold text-default-900 p-0">
-                  Daily Performance Distribution
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RoleStats rolePerformance={metrics?.rolePerformance} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="border-none p-6 pt-5 mb-0">
-                <CardTitle className="text-lg font-semibold text-default-900 p-0">
-                  Role Distribution
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="warehouse-metrics">
-                  <StowerPerformanceReport stowerStats={metrics?.stowerDistribution} />
+          ) : (
+            <>
+              {/* Package Metrics Overview */}
+              <div className="grid grid-cols-12 gap-6 mb-6">
+                <div className="col-span-12 lg:col-span-8">
+                  <ReportsSnapshot metrics={metrics?.packageMetrics} />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="col-span-12 lg:col-span-4">
+                  <UsersStat employeeStats={metrics?.employeeStats} />
+                </div>
+              </div>
 
-          {/* Detailed Employee Performance */}
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12">
-              <Card>
-                <CardHeader className="border-none pb-0">
-                  <CardTitle className="pt-2.5">Employee Performance Metrics</CardTitle>
-                </CardHeader>
-                <CardContent className="px-0">
-                  <TopPage employeeData={metrics?.employeePerformance} />
-                </CardContent>
-              </Card>
+              {/* Role Performance Metrics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ReportsArea metrics={metrics?.keyMetrics} />
+                </div>
+                <Card>
+                  <CardHeader className="border-none p-6 pt-5 mb-0">
+                    <CardTitle className="text-lg font-semibold text-default-900 p-0">
+                      Performance by Role
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RoleStats rolePerformance={metrics?.rolePerformance} />
+                  </CardContent>
+                </Card>
+                <Card>
+  <CardHeader className="border-none p-6 pt-5 mb-0">
+    <div className="flex justify-between items-center">
+      <CardTitle className="text-lg font-semibold text-default-900 p-0">
+        Task Completion Status
+      </CardTitle>
+      {dateRange?.from && dateRange?.to && (
+        <span className="text-xs text-muted-foreground">
+          {format(dateRange.from, 'MMM dd, yyyy')} - {format(dateRange.to, 'MMM dd, yyyy')}
+        </span>
+      )}
+    </div>
+  </CardHeader>
+  <CardContent>
+    <RoleDistributionChart roleData={metrics?.roleDistributionData} />
+  </CardContent>
+</Card>
+              </div>
+
+              {/* Detailed Employee Performance */}
+              <div className="grid grid-cols-12 gap-6 mb-6">
+                <div className="col-span-12">
+                  <Card>
+                    <CardHeader className="border-none pb-0">
+                      <CardTitle className="pt-2.5">Employee Performance Metrics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-0">
+                      <TopPage employeeData={metrics?.employeePerformance} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="daily">
+          <div className="flex justify-center items-center h-[50vh] bg-default-50 rounded-lg border border-dashed border-default-200 p-8">
+            <div className="text-center">
+              <h3 className="text-xl font-medium text-default-800 mb-2">Daily Performance View</h3>
+              <p className="text-default-600">This feature is coming soon. It will show detailed metrics for a specific day.</p>
             </div>
           </div>
-        </>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

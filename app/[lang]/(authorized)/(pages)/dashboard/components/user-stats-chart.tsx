@@ -33,7 +33,7 @@ const RoleStats = ({ rolePerformance, height = 250 }: RoleStatsProps) => {
     },
     {
       name: "Target",
-      data: [180, 140, 90]
+      data: [250, 50, 150]
     }
   ];
 

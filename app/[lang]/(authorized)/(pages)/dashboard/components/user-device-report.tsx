@@ -6,20 +6,43 @@ import { useThemeStore } from "@/store";
 import { useTheme } from "next-themes";
 import { themes } from "@/config/thems";
 
-interface StowerPerformanceReportProps {
-  stowerStats?: {
-    series: number[];
+interface RoleDistributionProps {
+  roleData?: {
+    inductor: number;
+    stower: number;
+    downstacker: number;
+    unassigned: number;
   };
   height?: number;
 }
 
-const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanceReportProps) => {
+const RoleDistributionChart = ({ roleData, height = 250 }: RoleDistributionProps) => {
   const { theme: config, setTheme: setConfig, isRtl } = useThemeStore();
   const { theme: mode } = useTheme();
   const theme = themes.find((theme) => theme.name === config);
   
   // Use provided data or fallback to empty data
-  const series = stowerStats?.series || [0, 0, 0];
+  const defaultData = {
+    inductor: 0,
+    stower: 0,
+    downstacker: 0,
+    unassigned: 0
+  };
+  
+  const data = roleData || defaultData;
+  
+  // Convert to series and labels for chart
+  const series = [
+    data.inductor,
+    data.stower,
+    data.downstacker,
+  ];
+  
+  const labels = [
+    "Inductors",
+    "Stowers",
+    "Downstackers",
+  ];
 
   const options: any = {
     chart: {
@@ -27,20 +50,21 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
         show: false,
       },
     },
-    labels: ["High Performers (200+)", "Average (110-200)", "Below Target (<110)"],
+    labels: labels,
     dataLabels: {
       enabled: false,
     },
     colors: [
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].success})`,
       `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].primary})`,
-      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].destructive})`
+      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].warning})`,
+      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].info})`,
+      `hsl(${theme?.cssVars[mode === "dark" ? "dark" : "light"].muted})`
     ],
     tooltip: {
       theme: mode === "dark" ? "dark" : "light",
       y: {
         formatter: function(value: number) {
-          return value + " stowers";
+          return value + " employees";
         }
       }
     },
@@ -54,7 +78,7 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
             show: true,
             name: {
               show: true,
-              fontSize: "24px",
+              fontSize: "16px",
               fontWeight: 500,
               color: `hsl(${theme?.cssVars[
                 mode === "dark" || mode === "system" ? "dark" : "light"
@@ -62,19 +86,19 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
             },
             value: {
               show: true,
-              fontSize: "18px",
+              fontSize: "16px",
               fontWeight: 600,
               color: `hsl(${theme?.cssVars[
                 mode === "dark" || mode === "system" ? "dark" : "light"
               ].chartLabel})`,
               formatter: function(val: number) {
-                return val + " stowers";
+                return val + " employees";
               }
             },
             total: {
               show: true,
-              label: "Total Stowers",
-              fontSize: "16px",
+              label: "Total Assignments",
+              fontSize: "14px",
               fontWeight: 600,
               color: `hsl(${theme?.cssVars[
                 mode === "dark" || mode === "system" ? "dark" : "light"
@@ -95,7 +119,7 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
         ].chartLabel})`
       },
       formatter: function(seriesName: string, opts: any) {
-        return seriesName + ": " + opts.w.globals.series[opts.seriesIndex] + " stowers";
+        return seriesName + ": " + opts.w.globals.series[opts.seriesIndex];
       },
       itemMargin: {
         horizontal: 5,
@@ -123,7 +147,7 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
     <>
       {!hasData ? (
         <div className="flex justify-center items-center h-64 text-default-500">
-          No stower data available for this period
+          No role assignment data available for this period
         </div>
       ) : (
         <Chart
@@ -138,4 +162,4 @@ const StowerPerformanceReport = ({ stowerStats, height = 250 }: StowerPerformanc
   );
 };
 
-export default StowerPerformanceReport;
+export default RoleDistributionChart;

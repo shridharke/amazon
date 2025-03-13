@@ -82,7 +82,7 @@ export async function POST(
       });
 
       // Update remaining package count
-      const remainingCount = Math.max(0, activeVet.targetPackageCount - employee.stowerEff);
+      const remainingCount = Math.max(0, activeVet.targetPackageCount - (employee.stowerEff *5));
 
       // If remaining count <= 50, close VET
       if (remainingCount <= 50) {

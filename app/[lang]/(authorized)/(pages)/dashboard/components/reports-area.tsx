@@ -23,12 +23,12 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
     switch (name.toLowerCase()) {
       case "packages/hour":
         return <Icon icon="material-symbols:package" className="h-4 w-4" />;
-      case "stower efficiency":
+      case "avg efficiency":
         return <Icon icon="mdi:account-group" className="h-4 w-4" />;
-      case "error rate":
-        return <Icon icon="mdi:alert-circle-outline" className="h-4 w-4" />;
-      case "queue time":
-        return <Icon icon="mdi:timer-sand" className="h-4 w-4" />;
+      case "completion rate":
+        return <Icon icon="mdi:check-circle-outline" className="h-4 w-4" />;
+      case "fixed vs flex":
+        return <Icon icon="mdi:account-switch" className="h-4 w-4" />;
       default:
         return <Icon icon="mdi:chart-line" className="h-4 w-4" />;
     }
@@ -46,7 +46,7 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
     },
     {
       id: 2,
-      name: "Stower Efficiency",
+      name: "Avg Efficiency",
       count: "0%",
       rate: "0",
       isUp: true,
@@ -54,19 +54,19 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
     },
     {
       id: 3,
-      name: "Error Rate",
+      name: "Completion Rate",
       count: "0%",
       rate: "0",
       isUp: false,
-      color: "warning",
+      color: "success",
     },
     {
       id: 4,
-      name: "Queue Time",
-      count: "0m",
+      name: "Fixed vs Flex",
+      count: "0:0",
       rate: "0",
-      isUp: false,
-      color: "destructive",
+      isUp: true,
+      color: "warning",
     },
   ];
 
@@ -76,8 +76,22 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
   // Add icons if not present
   const enrichedMetrics = metricsToRender.map(metric => ({
     ...metric,
-    icon: getIconForMetric(metric.name)
+    icon:getIconForMetric(metric.name)
   }));
+
+  // Helper function to get appropriate context label based on metric name
+  const getComparisonLabel = (metricName: string) => {
+    switch (metricName.toLowerCase()) {
+      case "packages/hour":
+      case "avg efficiency":
+      case "completion rate":
+        return "vs Period Average";
+      case "fixed vs flex":
+        return "Current Ratio";
+      default:
+        return "vs Previous Period";
+    }
+  };
 
   return (
     <>
@@ -88,15 +102,22 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
             <span className={cn("flex-none h-9 w-9 flex justify-center items-center bg-default-100 rounded-full", {
               "bg-primary bg-opacity-10 text-primary": item.color === "primary",
               "bg-info bg-opacity-10 text-info": item.color === "info",
+              "bg-success bg-opacity-10 text-success": item.color === "success",
               "bg-warning bg-opacity-10 text-warning": item.color === "warning",
               "bg-destructive bg-opacity-10 text-destructive": item.color === "destructive",
             })}>{item.icon}</span>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <div className="text-2xl font-semibold text-default-900 mb-2.5">{item.count}</div>
-            <div className="flex items-center font-semibold gap-1">
-              {
-                item.isUp ? (
+            
+            {/* Conditional rendering based on metric type */}
+            {item.name.toLowerCase() === "fixed vs flex" ? (
+              <div className="mt-1 text-xs text-default-600">
+                {item.rate !== "0" ? `${item.rate}% ${item.isUp ? "more fixed than flex" : "more flex than fixed"}` : "Equal distribution"}
+              </div>
+            ) : (
+              <div className="flex items-center font-semibold gap-1">
+                {item.isUp ? (
                   <>
                     <span className={item.color === "warning" || item.color === "destructive" ? "text-destructive" : "text-success"}>
                       {item.rate}%
@@ -116,10 +137,13 @@ const ReportsArea = ({ metrics }: ReportsAreaProps) => {
                       className={item.color === "warning" || item.color === "destructive" ? "text-success text-xl" : "text-destructive text-xl"} 
                     />
                   </>
-                )
-              }
+                )}
+              </div>
+            )}
+            
+            <div className="mt-1 text-xs text-default-600">
+              {getComparisonLabel(item.name)}
             </div>
-            <div className="mt-1 text-xs text-default-600">vs Previous Shift</div>
           </CardContent>
         </Card>
       ))}
