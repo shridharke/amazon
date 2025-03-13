@@ -125,27 +125,37 @@ const TaskAllocationPage: React.FC = () => {
   const fetchSchedule = async () => {
     if (!date || !selectedOrg) return;
     
+    console.log("Fetching schedule for date:", formatDateString(date));
+    
     setLoading(true);
     try {
-      // First check if a schedule exists for this date
-      const schedules = await ScheduleService.getSchedules(
-        selectedOrg.id, 
-        formatDateString(date), 
+      // Use the new getScheduleByDate method directly instead of fetching schedules first
+      const scheduleData = await ScheduleService.getScheduleByDate(
+        selectedOrg.id,
         formatDateString(date)
       );
       
-      if (schedules.length > 0) {
-        // Schedule exists, fetch details
-        const scheduleData = await ScheduleService.getScheduleById(parseInt(schedules[0].id));
+      console.log("Schedule data for date:", scheduleData);
+      
+      if (scheduleData) {
+        // Make sure scheduleData and its properties exist before proceeding
         
-        // Convert service types to component types
+        // Initialize employees array safely
+        const employeeList = scheduleData.employees || [];
+        
+        // Convert service types to component types with proper type checking
         const convertedSchedule: Schedule = {
           ...scheduleData,
-          employees: scheduleData.employees.map(emp => ({
-            ...emp,
-            type: emp.type as EmployeeType,
-            task: emp.task as EmployeeTask | undefined,
-            status: emp.status as EmployeeScheduleStatus | undefined
+          employees: employeeList.map(emp => ({
+            id: emp.id,
+            name: emp.name || "Unknown",
+            type: (emp.type as EmployeeType) || "FLEX",
+            task: (emp.task as EmployeeTask) || undefined,
+            status: (emp.status as EmployeeScheduleStatus) || undefined,
+            efficiency: emp.efficiency || 1.0,
+            stowerEff: emp.stowerEff || 1.0,
+            inductorEff: emp.inductorEff || 1.0,
+            downstackerEff: emp.downstackerEff || 1.0
           }))
         };
         
@@ -164,10 +174,11 @@ const TaskAllocationPage: React.FC = () => {
         setTaskAssignments(assignments);
         generateSuggestions(convertedSchedule.employees);
         
-        // Generate workforce plans (simulating the Python logic)
+        // Generate workforce plans with the fixed function
         generateWorkforcePlans(convertedSchedule.employees);
       } else {
         // No schedule found for this date
+        console.log("No schedule found for date:", formatDateString(date));
         setSchedule(null);
         setScheduledEmployees([]);
         setTaskAssignments({});
@@ -176,7 +187,22 @@ const TaskAllocationPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching schedule:", error);
+      
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
       toast.error("Failed to fetch schedule for the selected date");
+      
+      // Reset states on error
+      setSchedule(null);
+      setScheduledEmployees([]);
+      setTaskAssignments({});
+      setWorkforcePlans(null);
+      setSelectedPlan(null);
     } finally {
       setLoading(false);
     }
@@ -209,91 +235,137 @@ const TaskAllocationPage: React.FC = () => {
 
   // Generate workforce plans (simulating the Python logic)
   const generateWorkforcePlans = (employees: Employee[]) => {
-    if (!employees.length) return;
+    if (!employees || employees.length === 0) {
+      console.log("No employees to generate workforce plans for");
+      return;
+    }
     
-    // This is a simplified version of the Python logic shown in the requirements
-    // In a real implementation, this would call an API endpoint that runs the Python code
+    console.log("Generating workforce plans for", employees.length, "employees");
     
     // Get employee IDs
     const employeeIds = employees.map(emp => emp.id);
     
     // Function to randomly select n employees from the list
     const selectRandomEmployees = (count: number) => {
+      // Make sure we don't try to select more employees than we have
+      const actualCount = Math.min(count, employeeIds.length);
       const shuffled = [...employeeIds].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, count);
+      return shuffled.slice(0, actualCount);
     };
     
     // Generate random work history for demonstration purposes
     const generateWorkHistory = () => Math.floor(Math.random() * 10);
     
-    // Create the three efficiency plans
+    // Create empty plans structure first
     const plans: WorkforcePlans = {
       High: {
-        Inductor: [{
-          "Employee ID": employeeIds.find(id => 
-            employees.find(e => e.id === id)?.inductorEff || 0 > 1.5
-          ) || employeeIds[0],
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        }],
-        Downstackers: selectRandomEmployees(2).map(id => ({
-          "Employee ID": id,
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        })),
-        Stowers: employeeIds
-          .filter(id => 
-            !plans.High.Inductor.some(e => e["Employee ID"] === id) && 
-            !plans.High.Downstackers.some(e => e["Employee ID"] === id)
-          )
-          .map(id => ({
-            "Employee ID": id,
-            "Times Worked (Last 30 Days)": generateWorkHistory()
-          }))
+        Inductor: [],
+        Downstackers: [],
+        Stowers: []
       },
       Medium: {
-        Inductor: [{
-          "Employee ID": employeeIds.find(id => 
-            employees.find(e => e.id === id)?.inductorEff || 0 > 1.2 &&
-            employees.find(e => e.id === id)?.inductorEff || 0 <= 1.5
-          ) || employeeIds[1],
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        }],
-        Downstackers: selectRandomEmployees(3).map(id => ({
-          "Employee ID": id,
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        })),
-        Stowers: employeeIds
-          .filter(id => 
-            !plans.Medium.Inductor.some(e => e["Employee ID"] === id) && 
-            !plans.Medium.Downstackers.some(e => e["Employee ID"] === id)
-          )
-          .map(id => ({
-            "Employee ID": id,
-            "Times Worked (Last 30 Days)": generateWorkHistory()
-          }))
+        Inductor: [],
+        Downstackers: [],
+        Stowers: []
       },
       Low: {
-        Inductor: [{
-          "Employee ID": employeeIds.find(id => 
-            employees.find(e => e.id === id)?.inductorEff || 0 <= 1.2
-          ) || employeeIds[2],
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        }],
-        Downstackers: selectRandomEmployees(1).map(id => ({
-          "Employee ID": id,
-          "Times Worked (Last 30 Days)": generateWorkHistory()
-        })),
-        Stowers: employeeIds
-          .filter(id => 
-            !plans.Low.Inductor.some(e => e["Employee ID"] === id) && 
-            !plans.Low.Downstackers.some(e => e["Employee ID"] === id)
-          )
-          .map(id => ({
-            "Employee ID": id,
-            "Times Worked (Last 30 Days)": generateWorkHistory()
-          }))
+        Inductor: [],
+        Downstackers: [],
+        Stowers: []
       }
     };
     
+    // === HIGH EFFICIENCY PLAN ===
+    
+    // Find an employee with high inductor efficiency for High plan
+    const highInductorEmployee = employeeIds.find(id => {
+      const emp = employees.find(e => e.id === id);
+      return emp && emp.inductorEff && emp.inductorEff > 1.5;
+    }) || employeeIds[0];
+    
+    // Add inductor to High plan
+    plans.High.Inductor = [{
+      "Employee ID": highInductorEmployee,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }];
+    
+    // Select downstackers for High plan
+    const highDownstackers = selectRandomEmployees(2);
+    plans.High.Downstackers = highDownstackers.map(id => ({
+      "Employee ID": id,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }));
+    
+    // Assign remaining employees as stowers for High plan
+    const assignedHighIds = new Set([highInductorEmployee, ...highDownstackers]);
+    plans.High.Stowers = employeeIds
+      .filter(id => !assignedHighIds.has(id))
+      .map(id => ({
+        "Employee ID": id,
+        "Times Worked (Last 30 Days)": generateWorkHistory()
+      }));
+    
+    // === MEDIUM EFFICIENCY PLAN ===
+    
+    // Find an employee with medium inductor efficiency for Medium plan
+    const mediumInductorEmployee = employeeIds.find(id => {
+      const emp = employees.find(e => e.id === id);
+      return emp && emp.inductorEff && emp.inductorEff > 1.2 && emp.inductorEff <= 1.5;
+    }) || employeeIds[Math.min(1, employeeIds.length - 1)] || employeeIds[0];
+    
+    // Add inductor to Medium plan
+    plans.Medium.Inductor = [{
+      "Employee ID": mediumInductorEmployee,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }];
+    
+    // Select downstackers for Medium plan
+    const mediumDownstackers = selectRandomEmployees(Math.min(3, employeeIds.length - 1));
+    plans.Medium.Downstackers = mediumDownstackers.map(id => ({
+      "Employee ID": id,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }));
+    
+    // Assign remaining employees as stowers for Medium plan
+    const assignedMediumIds = new Set([mediumInductorEmployee, ...mediumDownstackers]);
+    plans.Medium.Stowers = employeeIds
+      .filter(id => !assignedMediumIds.has(id))
+      .map(id => ({
+        "Employee ID": id,
+        "Times Worked (Last 30 Days)": generateWorkHistory()
+      }));
+    
+    // === LOW EFFICIENCY PLAN ===
+    
+    // Find an employee with low inductor efficiency for Low plan
+    const lowInductorEmployee = employeeIds.find(id => {
+      const emp = employees.find(e => e.id === id);
+      return emp && emp.inductorEff && emp.inductorEff <= 1.2;
+    }) || employeeIds[Math.min(2, employeeIds.length - 1)] || employeeIds[0];
+    
+    // Add inductor to Low plan
+    plans.Low.Inductor = [{
+      "Employee ID": lowInductorEmployee,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }];
+    
+    // Select downstackers for Low plan
+    const lowDownstackers = selectRandomEmployees(1);
+    plans.Low.Downstackers = lowDownstackers.map(id => ({
+      "Employee ID": id,
+      "Times Worked (Last 30 Days)": generateWorkHistory()
+    }));
+    
+    // Assign remaining employees as stowers for Low plan
+    const assignedLowIds = new Set([lowInductorEmployee, ...lowDownstackers]);
+    plans.Low.Stowers = employeeIds
+      .filter(id => !assignedLowIds.has(id))
+      .map(id => ({
+        "Employee ID": id,
+        "Times Worked (Last 30 Days)": generateWorkHistory()
+      }));
+    
+    console.log("Generated workforce plans:", plans);
     setWorkforcePlans(plans);
   };
 
@@ -312,14 +384,18 @@ const TaskAllocationPage: React.FC = () => {
   
   // Update when schedule changes
   useEffect(() => {
+    console.log("Schedule changed:", schedule);
     if (schedule) {
+      console.log("Fetching workforce plans for schedule:", schedule.id);
       fetchWorkforcePlans();
     }
   }, [schedule]);
   
   // Update when date changes
   useEffect(() => {
+    console.log("Date changed:", date);
     if (date && selectedOrg) {
+      console.log("Fetching schedule for date:", date);
       fetchSchedule();
     }
   }, [date, selectedOrg]);

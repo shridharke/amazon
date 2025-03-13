@@ -401,6 +401,47 @@ export interface ScheduleEvent {
 }
 
 export class ScheduleService {
+
+  static async getScheduleByDate(
+    organizationId: number,
+    date: string
+  ): Promise<Schedule | null> {
+    try {
+      const response = await fetch(
+        `/api/schedules/date?organizationId=${organizationId}&date=${date}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      console.log("Schedule by date response status:", response.status);
+  
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Not found is a valid response, return null
+          return null;
+        }
+        throw new Error("Failed to fetch schedule");
+      }
+  
+      const result = await response.json();
+      
+      if (!result.success || !result.data) {
+        console.log("No schedule found for date:", date);
+        return null;
+      }
+      
+      return result.data;
+    } catch (error) {
+      console.error("Error fetching schedule by date:", error);
+      toast.error("Failed to fetch schedule");
+      throw error;
+    }
+  }
+
   // Get all schedules for a date range
   static async getSchedules(
     organizationId: number, 
@@ -417,6 +458,8 @@ export class ScheduleService {
           },
         }
       );
+
+      console.log("schedule response", response);
 
       if (!response.ok) {
         throw new Error("Failed to fetch schedules");
