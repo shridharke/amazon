@@ -1,5 +1,5 @@
 // app/api/dashboard/route.ts
-
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { EmployeeTask, EmployeeType, PerformanceRecord } from '@prisma/client';
