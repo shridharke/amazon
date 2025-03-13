@@ -253,11 +253,11 @@ const TaskAllocationPage: React.FC = () => {
       return shuffled.slice(0, actualCount);
     };
     
-    // Generate random work history for demonstration purposes
-    const generateWorkHistory = () => Math.floor(Math.random() * 10);
+    // Generate random work history for demonstration purposes (in hours)
+    const generateWorkHistory = () => Math.floor(Math.random() * 10) * 5; // Multiply by 5 hours per shift
     
     // Create empty plans structure first
-    const plans: WorkforcePlans = {
+    let plans: WorkforcePlans = {
       High: {
         Inductor: [],
         Downstackers: [],
@@ -275,95 +275,169 @@ const TaskAllocationPage: React.FC = () => {
       }
     };
     
-    // === HIGH EFFICIENCY PLAN ===
+    // === PLAN 1 ===
     
-    // Find an employee with high inductor efficiency for High plan
-    const highInductorEmployee = employeeIds.find(id => {
+    // Find an employee with high inductor efficiency for first plan
+    const plan1InductorEmployee = employeeIds.find(id => {
       const emp = employees.find(e => e.id === id);
       return emp && emp.inductorEff && emp.inductorEff > 1.5;
     }) || employeeIds[0];
     
-    // Add inductor to High plan
+    // Add inductor to first plan
     plans.High.Inductor = [{
-      "Employee ID": highInductorEmployee,
+      "Employee ID": plan1InductorEmployee,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }];
     
-    // Select downstackers for High plan
-    const highDownstackers = selectRandomEmployees(2);
-    plans.High.Downstackers = highDownstackers.map(id => ({
+    // Select downstackers for first plan
+    const plan1Downstackers = selectRandomEmployees(2);
+    plans.High.Downstackers = plan1Downstackers.map(id => ({
       "Employee ID": id,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }));
     
-    // Assign remaining employees as stowers for High plan
-    const assignedHighIds = new Set([highInductorEmployee, ...highDownstackers]);
+    // Assign remaining employees as stowers for first plan
+    const assignedPlan1Ids = new Set([plan1InductorEmployee, ...plan1Downstackers]);
     plans.High.Stowers = employeeIds
-      .filter(id => !assignedHighIds.has(id))
+      .filter(id => !assignedPlan1Ids.has(id))
       .map(id => ({
         "Employee ID": id,
         "Times Worked (Last 30 Days)": generateWorkHistory()
       }));
     
-    // === MEDIUM EFFICIENCY PLAN ===
+    // === PLAN 2 ===
     
-    // Find an employee with medium inductor efficiency for Medium plan
-    const mediumInductorEmployee = employeeIds.find(id => {
+    // Find an employee with medium inductor efficiency for second plan
+    const plan2InductorEmployee = employeeIds.find(id => {
       const emp = employees.find(e => e.id === id);
       return emp && emp.inductorEff && emp.inductorEff > 1.2 && emp.inductorEff <= 1.5;
     }) || employeeIds[Math.min(1, employeeIds.length - 1)] || employeeIds[0];
     
-    // Add inductor to Medium plan
+    // Add inductor to second plan
     plans.Medium.Inductor = [{
-      "Employee ID": mediumInductorEmployee,
+      "Employee ID": plan2InductorEmployee,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }];
     
-    // Select downstackers for Medium plan
-    const mediumDownstackers = selectRandomEmployees(Math.min(3, employeeIds.length - 1));
-    plans.Medium.Downstackers = mediumDownstackers.map(id => ({
+    // Select downstackers for second plan
+    const plan2Downstackers = selectRandomEmployees(Math.min(3, employeeIds.length - 1));
+    plans.Medium.Downstackers = plan2Downstackers.map(id => ({
       "Employee ID": id,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }));
     
-    // Assign remaining employees as stowers for Medium plan
-    const assignedMediumIds = new Set([mediumInductorEmployee, ...mediumDownstackers]);
+    // Assign remaining employees as stowers for second plan
+    const assignedPlan2Ids = new Set([plan2InductorEmployee, ...plan2Downstackers]);
     plans.Medium.Stowers = employeeIds
-      .filter(id => !assignedMediumIds.has(id))
+      .filter(id => !assignedPlan2Ids.has(id))
       .map(id => ({
         "Employee ID": id,
         "Times Worked (Last 30 Days)": generateWorkHistory()
       }));
     
-    // === LOW EFFICIENCY PLAN ===
+    // === PLAN 3 ===
     
-    // Find an employee with low inductor efficiency for Low plan
-    const lowInductorEmployee = employeeIds.find(id => {
+    // Find an employee with low inductor efficiency for third plan
+    const plan3InductorEmployee = employeeIds.find(id => {
       const emp = employees.find(e => e.id === id);
       return emp && emp.inductorEff && emp.inductorEff <= 1.2;
     }) || employeeIds[Math.min(2, employeeIds.length - 1)] || employeeIds[0];
     
-    // Add inductor to Low plan
+    // Add inductor to third plan
     plans.Low.Inductor = [{
-      "Employee ID": lowInductorEmployee,
+      "Employee ID": plan3InductorEmployee,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }];
     
-    // Select downstackers for Low plan
-    const lowDownstackers = selectRandomEmployees(1);
-    plans.Low.Downstackers = lowDownstackers.map(id => ({
+    // Select downstackers for third plan
+    const plan3Downstackers = selectRandomEmployees(1);
+    plans.Low.Downstackers = plan3Downstackers.map(id => ({
       "Employee ID": id,
       "Times Worked (Last 30 Days)": generateWorkHistory()
     }));
     
-    // Assign remaining employees as stowers for Low plan
-    const assignedLowIds = new Set([lowInductorEmployee, ...lowDownstackers]);
+    // Assign remaining employees as stowers for third plan
+    const assignedPlan3Ids = new Set([plan3InductorEmployee, ...plan3Downstackers]);
     plans.Low.Stowers = employeeIds
-      .filter(id => !assignedLowIds.has(id))
+      .filter(id => !assignedPlan3Ids.has(id))
       .map(id => ({
         "Employee ID": id,
         "Times Worked (Last 30 Days)": generateWorkHistory()
       }));
+    
+    // NEW CODE: Reorder plans based on actual completion time
+    if (schedule?.shift?.totalPackages) {
+      // Use our completion time calculation to determine which plan is fastest
+      const calculatePlanTime = (planType: "High" | "Medium" | "Low") => {
+        const plan = plans[planType];
+        const totalPackages = schedule.shift!.totalPackages;
+        
+        // Calculate total efficiency for each task type
+        let inductorEfficiency = 0;
+        let downstackerEfficiency = 0;
+        let stowerEfficiency = 0;
+        
+        // Calculate inductor total efficiency
+        plan.Inductor.forEach(emp => {
+          const employee = findEmployeeById(emp["Employee ID"]);
+          if (employee) {
+            inductorEfficiency += (employee.inductorEff || 1.0);
+          }
+        });
+        
+        // Calculate downstacker total efficiency
+        plan.Downstackers.forEach(emp => {
+          const employee = findEmployeeById(emp["Employee ID"]);
+          if (employee) {
+            downstackerEfficiency += (employee.downstackerEff || 1.0);
+          }
+        });
+        
+        // Calculate stower total efficiency
+        plan.Stowers.forEach(emp => {
+          const employee = findEmployeeById(emp["Employee ID"]);
+          if (employee) {
+            stowerEfficiency += (employee.stowerEff || 1.0);
+          }
+        });
+        
+        // Calculate time needed for each task type (packages / total efficiency)
+        const inductorTime = inductorEfficiency > 0 ? totalPackages / (inductorEfficiency * TASKS.find(t => t.id === "INDUCTOR")!.baseRate) : Infinity;
+        const downstackerTime = downstackerEfficiency > 0 ? totalPackages / (downstackerEfficiency * TASKS.find(t => t.id === "DOWNSTACKER")!.baseRate) : Infinity;
+        const stowerTime = stowerEfficiency > 0 ? totalPackages / (stowerEfficiency * TASKS.find(t => t.id === "STOWER")!.baseRate) : Infinity;
+        
+        // Get the maximum time (bottleneck)
+        return Math.max(inductorTime, downstackerTime, stowerTime);
+      };
+      
+      // Calculate completion time for each plan
+      const planTimes = {
+        High: calculatePlanTime("High"),
+        Medium: calculatePlanTime("Medium"),
+        Low: calculatePlanTime("Low")
+      };
+      
+      console.log("Original plan times:", planTimes);
+      
+      // Sort plans by completion time
+      const sortedPlans = Object.entries(planTimes)
+        .sort((a, b) => a[1] - b[1])
+        .map(entry => entry[0] as "High" | "Medium" | "Low");
+      
+      console.log("Sorted plans by completion time:", sortedPlans);
+      
+      // Reorder plans based on completion time (fastest to slowest)
+      if (sortedPlans.length === 3) {
+        const reorderedPlans = {
+          High: plans[sortedPlans[0]],
+          Medium: plans[sortedPlans[1]],
+          Low: plans[sortedPlans[2]]
+        };
+        
+        plans = reorderedPlans;
+        console.log("Reordered plans based on completion time");
+      }
+    }
     
     console.log("Generated workforce plans:", plans);
     setWorkforcePlans(plans);
@@ -399,30 +473,6 @@ const TaskAllocationPage: React.FC = () => {
       fetchSchedule();
     }
   }, [date, selectedOrg]);
-
-  // Assign a task to an employee
-  const assignTask = async (employeeId: number, taskId: EmployeeTask) => {
-    if (!schedule) return;
-    
-    setLoading(true);
-    try {
-      // Cast our EmployeeTask to the service's type for better compatibility
-      await TaskAllocationService.assignTask(schedule.id, employeeId, taskId as TaskServiceEmployeeTask);
-      
-      // Update local state after successful API call
-      setTaskAssignments(prev => ({
-        ...prev,
-        [employeeId]: taskId
-      }));
-      
-      toast.success(`Task assigned successfully`);
-    } catch (error) {
-      console.error("Error assigning task:", error);
-      toast.error("Failed to assign task");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Calculate performance metric for an employee-task combination
   const calculatePerformance = (employee: Employee, taskId: EmployeeTask) => {
@@ -509,8 +559,8 @@ const TaskAllocationPage: React.FC = () => {
   };
   
   // Calculate completion time for a plan
-  const calculateCompletionTime = (planType: "High" | "Medium" | "Low") => {
-    if (!workforcePlans || !schedule?.shift?.totalPackages) return "N/A";
+  const calculateCompletionTimeValue = (planType: "High" | "Medium" | "Low") => {
+    if (!workforcePlans || !schedule?.shift?.totalPackages) return Infinity;
     
     const plan = workforcePlans[planType];
     const totalPackages = schedule.shift.totalPackages;
@@ -550,7 +600,12 @@ const TaskAllocationPage: React.FC = () => {
     const stowerTime = stowerEfficiency > 0 ? totalPackages / stowerEfficiency : Infinity;
     
     // Get the maximum time (bottleneck)
-    const maxTime = stowerTime;
+    return Math.max(inductorTime, downstackerTime, stowerTime);
+  };
+  
+  // The formatted version for display
+  const calculateCompletionTime = (planType: "High" | "Medium" | "Low") => {
+    const maxTime = calculateCompletionTimeValue(planType);
     
     if (maxTime === Infinity) {
       return "N/A";
@@ -724,11 +779,36 @@ const TaskAllocationPage: React.FC = () => {
                   <TableHead>Assigned Task</TableHead>
                   <TableHead>Efficiency</TableHead>
                   <TableHead>Estimated Output</TableHead>
+                  <TableHead>Hours Worked (Last 30 Days)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {scheduledEmployees.map(employee => {
                   const currentTask = taskAssignments[employee.id] || employee.task;
+                  // Find hours worked from workforcePlans
+                  let hoursWorked = 0;
+                  
+                  if (workforcePlans && selectedPlan) {
+                    const plan = workforcePlans[selectedPlan];
+                    
+                    // Check if employee is an inductor
+                    const inductorEntry = plan.Inductor.find(emp => emp["Employee ID"] === employee.id);
+                    if (inductorEntry) {
+                      hoursWorked = inductorEntry["Times Worked (Last 30 Days)"];
+                    }
+                    
+                    // Check if employee is a downstacker
+                    const downstackerEntry = plan.Downstackers.find(emp => emp["Employee ID"] === employee.id);
+                    if (downstackerEntry) {
+                      hoursWorked = downstackerEntry["Times Worked (Last 30 Days)"];
+                    }
+                    
+                    // Check if employee is a stower
+                    const stowerEntry = plan.Stowers.find(emp => emp["Employee ID"] === employee.id);
+                    if (stowerEntry) {
+                      hoursWorked = stowerEntry["Times Worked (Last 30 Days)"];
+                    }
+                  }
                   
                   return (
                     <TableRow key={employee.id}>
@@ -758,6 +838,9 @@ const TaskAllocationPage: React.FC = () => {
                             {calculatePerformance(employee, currentTask)} units
                           </div>
                         ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {hoursWorked} hrs
                       </TableCell>
                     </TableRow>
                   );
