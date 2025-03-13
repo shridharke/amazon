@@ -1,4 +1,5 @@
 "use client"
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -26,8 +27,8 @@ interface RoleMetricsTableProps {
 
 const RoleMetricsTable = ({ metrics }: RoleMetricsTableProps) => {
   return (
-    <div className="h-[250px]">
-      <ScrollArea className="h-full">
+    <div className="relative h-[250px] w-full overflow-auto">
+      <div className="min-w-[600px]">
         <Table className="border border-default-200">
           <TableHeader>
             <TableRow className="border-b border-default-200">
@@ -83,7 +84,7 @@ const RoleMetricsTable = ({ metrics }: RoleMetricsTableProps) => {
             </TableRow>
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

@@ -114,7 +114,7 @@ const UsersStat = ({ employeeStats }: UsersStatProps) => {
       </CardHeader>
       <CardContent>
         <div className="rounded-lg overflow-hidden">
-          <div className="p-4 pt-0">
+          <div className="p-2 pt-0">
             <div className="text-sm font-medium text-default-900 mb-4">
               Performance by Role
             </div>

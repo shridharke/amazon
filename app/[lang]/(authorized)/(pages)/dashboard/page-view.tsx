@@ -217,7 +217,7 @@ const DashboardPageView = () => {
           ) : (
             <>
               {/* Package Metrics Overview */}
-              <div className="grid grid-cols-12 gap-6 mb-6">
+              <div className="grid grid-cols-12 gap-3 mb-3">
                 <div className="col-span-12 lg:col-span-8">
                   <ReportsSnapshot metrics={metrics?.packageMetrics} />
                 </div>
@@ -227,7 +227,7 @@ const DashboardPageView = () => {
               </div>
 
               {/* Role Performance Metrics */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <ReportsArea metrics={metrics?.keyMetrics} />
                 </div>
@@ -261,7 +261,7 @@ const DashboardPageView = () => {
               </div>
 
               {/* Detailed Employee Performance */}
-              <div className="grid grid-cols-12 gap-6 mb-6">
+              <div className="grid grid-cols-12 gap-3 mb-3">
                 <div className="col-span-12">
                   <Card>
                     <CardHeader className="border-none pb-0">

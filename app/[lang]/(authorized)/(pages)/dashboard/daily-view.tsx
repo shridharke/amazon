@@ -217,23 +217,10 @@ const DailyPerformanceView = () => {
     let taskTypeName = '';
 
     if (comparisonType === 'overall') {
-      // For overall, calculate the average efficiency of all scheduled employees
-      const activeEmployees = schedule.employees.filter(emp => emp.task);
-      
-      if (activeEmployees.length > 0) {
-        let totalEfficiency = 0;
-        
-        activeEmployees.forEach(emp => {
-          // Use the task-specific efficiency directly (not percentage but packages/hour)
-          if (emp.task === 'INDUCTOR') totalEfficiency += emp.inductorEff;
-          else if (emp.task === 'STOWER') totalEfficiency += emp.stowerEff;
-          else if (emp.task === 'DOWNSTACKER') totalEfficiency += emp.downstackerEff;
-          else totalEfficiency += emp.avgEfficiency;
-        });
-        
-        expectedRate = totalEfficiency / activeEmployees.length;
+      // For overall, use the total packages for the day divided by 5 hours
+      if (schedule.shift?.totalPackages) {
+        expectedRate = schedule.shift.totalPackages / 5;
       }
-      
       taskTypeName = 'Overall';
     } else if (comparisonType === 'employee' && selectedEntity) {
       // Find the selected employee
@@ -263,7 +250,7 @@ const DailyPerformanceView = () => {
           else totalEfficiency += emp.avgEfficiency;
         });
         
-        expectedRate = totalEfficiency / taskEmployees.length;
+        expectedRate = totalEfficiency;
         taskTypeName = selectedEntity.charAt(0) + selectedEntity.slice(1).toLowerCase() + 's';
       }
     }

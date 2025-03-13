@@ -550,7 +550,7 @@ const TaskAllocationPage: React.FC = () => {
     const stowerTime = stowerEfficiency > 0 ? totalPackages / stowerEfficiency : Infinity;
     
     // Get the maximum time (bottleneck)
-    const maxTime = inductorTime;
+    const maxTime = stowerTime;
     
     if (maxTime === Infinity) {
       return "N/A";
