@@ -17,9 +17,10 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { ArrowRightCircle, Calendar, Clock, Loader2, Package, Users } from "lucide-react";
+import { ArrowRightCircle, Calendar, Clock, Loader2, Package, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 interface Employee {
   id: number;
@@ -106,6 +107,46 @@ export default function CalendarView() {
       await fetchFixedEmployees(selectedDate);
     }
   };
+
+  const handleDeleteSchedule = async () => {
+    if (!selectedSchedule) return;
+  
+    try {
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete this schedule for ${new Date(selectedSchedule.date).toLocaleDateString()}? This action cannot be undone.`
+      );
+  
+      if (!confirmDelete) return;
+  
+      setLoading(true);
+      
+      const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
+        method: 'DELETE',
+      });
+  
+      const data = await response.json();
+      
+      if (data.success) {
+        // Clear the selected schedule
+        setSelectedSchedule(null);
+        
+        // Refresh the calendar to update the UI
+        await fetchSchedules();
+        
+        // Optional: show success message
+        toast.success('Schedule successfully deleted');
+      } else {
+        console.error('Error deleting schedule:', data.error);
+        toast.error(`Failed to delete schedule: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error in delete operation:', error);
+      toast.error('An unexpected error occurred while deleting the schedule');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   const calculateRemainingPackages = (totalPackages: number) => {
     const handledByFixed = Math.floor(totalEfficiency);
@@ -672,13 +713,15 @@ const handleVETAction = async (action: 'start' | 'close') => {
               </>
             )}
         
-            <Button 
-              onClick={navigateToDailyView} 
-              className="w-full"
-            >
-              <ArrowRightCircle className="mr-2 h-4 w-4" />
-              View Daily Details
-            </Button>
+        <Button 
+  onClick={handleDeleteSchedule} 
+  className="w-full"
+  color="destructive"
+  disabled={loading || !selectedSchedule}
+>
+  <Trash2 className="mr-2 h-4 w-4" />
+  Delete Schedule
+</Button>
           </div>
         </div>
       ) : (

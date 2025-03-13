@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportsSnapshot from "./components/reports-snapshot";
-import StowerPerformanceReport from "./components/user-device-report";
 import RoleStats from "./components/user-stats-chart";
 import UsersStat from "./components/users-stat";
 import ReportsArea from "./components/reports-area";
@@ -20,9 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import EfficiencyComparisonChart from './components/user-device-report';
 import RoleDistributionChart from './components/user-device-report';
-import TaskCompletionChart from './components/user-device-report';
+import DailyPerformanceView from './daily-view';
 
 // Define the metrics interface to match the API response structure
 interface DashboardMetrics {
@@ -166,8 +164,11 @@ const DashboardPageView = () => {
       }
     };
 
-    fetchDashboardData();
-  }, [dateRange, toast, taskFilter]);
+    // Only fetch data for the overall tab
+    if (activeTab === "overall") {
+      fetchDashboardData();
+    }
+  }, [dateRange, toast, taskFilter, activeTab]);
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     console.log('Date range changed:', range);
@@ -184,15 +185,28 @@ const DashboardPageView = () => {
         <div className="text-2xl font-medium text-default-800">
           Warehouse Performance Metrics Dashboard
         </div>
-        <div className="flex gap-4">
-          <DatePickerWithRange value={dateRange} onChange={handleDateRangeChange} />
-        </div>
+        {activeTab === "overall" && (
+          <div className="flex gap-4">
+            <Select value={taskFilter} onValueChange={handleTaskFilterChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Task" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                <SelectItem value="INDUCTOR">Inductor</SelectItem>
+                <SelectItem value="STOWER">Stower</SelectItem>
+                <SelectItem value="DOWNSTACKER">Downstacker</SelectItem>
+              </SelectContent>
+            </Select>
+            <DatePickerWithRange value={dateRange} onChange={handleDateRangeChange} />
+          </div>
+        )}
       </div>
       
       <Tabs defaultValue="overall" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="overall">Overall Efficiency</TabsTrigger>
-          <TabsTrigger value="daily" disabled={false}>Daily Performance</TabsTrigger>
+          <TabsTrigger value="daily">Daily Performance</TabsTrigger>
         </TabsList>
       
         <TabsContent value="overall">
@@ -228,22 +242,22 @@ const DashboardPageView = () => {
                   </CardContent>
                 </Card>
                 <Card>
-  <CardHeader className="border-none p-6 pt-5 mb-0">
-    <div className="flex justify-between items-center">
-      <CardTitle className="text-lg font-semibold text-default-900 p-0">
-        Task Completion Status
-      </CardTitle>
-      {dateRange?.from && dateRange?.to && (
-        <span className="text-xs text-muted-foreground">
-          {format(dateRange.from, 'MMM dd, yyyy')} - {format(dateRange.to, 'MMM dd, yyyy')}
-        </span>
-      )}
-    </div>
-  </CardHeader>
-  <CardContent>
-    <RoleDistributionChart roleData={metrics?.roleDistributionData} />
-  </CardContent>
-</Card>
+                  <CardHeader className="border-none p-6 pt-5 mb-0">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg font-semibold text-default-900 p-0">
+                        Role Distribution
+                      </CardTitle>
+                      {dateRange?.from && dateRange?.to && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(dateRange.from, 'MMM dd, yyyy')} - {format(dateRange.to, 'MMM dd, yyyy')}
+                        </span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <RoleDistributionChart roleData={metrics?.roleDistributionData} />
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Detailed Employee Performance */}
@@ -264,11 +278,8 @@ const DashboardPageView = () => {
         </TabsContent>
         
         <TabsContent value="daily">
-          <div className="flex justify-center items-center h-[50vh] bg-default-50 rounded-lg border border-dashed border-default-200 p-8">
-            <div className="text-center">
-              <h3 className="text-xl font-medium text-default-800 mb-2">Daily Performance View</h3>
-              <p className="text-default-600">This feature is coming soon. It will show detailed metrics for a specific day.</p>
-            </div>
+          <div className="container mx-auto">
+            <DailyPerformanceView />
           </div>
         </TabsContent>
       </Tabs>

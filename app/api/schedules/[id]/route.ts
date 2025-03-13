@@ -95,3 +95,72 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const scheduleId = parseInt(params.id);
+    
+    // Check if the schedule exists
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: scheduleId },
+    });
+
+    if (!schedule) {
+      return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
+    }
+
+    // Perform cascading delete in the correct order to handle foreign key constraints
+    
+    // 1. Delete VET records related to this schedule
+    await prisma.vET.deleteMany({
+      where: { scheduleId: scheduleId },
+    });
+
+    // 2. Delete schedule employee records
+    await prisma.scheduleEmployee.deleteMany({
+      where: { scheduleId: scheduleId },
+    });
+
+    // 3. Delete shift and package data if they exist
+    if (schedule.id) {
+      // Get the shift to access package ID
+      const shift = await prisma.shift.findUnique({
+        where: { id: schedule.id },
+        select: { packageId: true }
+      });
+
+      // Delete package if it exists
+      if (shift?.packageId) {
+        await prisma.package.delete({
+          where: { id: shift.packageId }
+        });
+      }
+
+      // Delete shift
+      await prisma.shift.delete({
+        where: { id: schedule.id }
+      });
+    }
+
+    // 4. Finally, delete the schedule itself
+    await prisma.schedule.delete({
+      where: { id: scheduleId }
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Schedule and related data successfully deleted'
+    });
+  } catch (error) {
+    console.error('Error deleting schedule:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to delete schedule. ' + (error instanceof Error ? error.message : 'Unknown error')
+    }, { 
+      status: 500 
+    });
+  }
+}
