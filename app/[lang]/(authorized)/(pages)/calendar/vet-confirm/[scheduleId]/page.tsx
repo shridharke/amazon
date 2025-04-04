@@ -165,7 +165,7 @@ export default function VETConfirmPage({ params }: { params: { scheduleId: strin
                   <SelectTrigger id="employee" className="w-full">
                     <SelectValue placeholder={loadingEmployees ? "Loading employees..." : "Select an employee"} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className='h-[300px] overflow-y-scroll'>
                     {loadingEmployees ? (
                       <div className="flex justify-center items-center p-2">
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -215,26 +215,6 @@ export default function VETConfirmPage({ params }: { params: { scheduleId: strin
             </div>
           )}
         </CardContent>
-        
-        <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => router.push('/schedule/calendar')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Calendar
-          </Button>
-          
-          {confirmed && (
-            <Button 
-              size="sm" 
-              onClick={() => router.push(`/schedule/daily/${params.scheduleId}`)}
-            >
-              View Details
-            </Button>
-          )}
-        </CardFooter>
       </Card>
     </div>
   );
