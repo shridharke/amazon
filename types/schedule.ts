@@ -33,6 +33,7 @@ export interface ScheduleInfo {
     vet?: VETInfo;
     fixedEmployeesEfficiency: number;
     remainingPackages: number;
+    vto?:VTOInfo
   }
 
 export interface CreateScheduleRequest {
