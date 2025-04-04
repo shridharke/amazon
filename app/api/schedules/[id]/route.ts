@@ -28,6 +28,12 @@ export async function GET(
           },
           take: 1,
         },
+        vto: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
       },
     });
 
@@ -86,6 +92,13 @@ export async function GET(
         openedAt: schedule.vet[0].openedAt,
         closedAt: schedule.vet[0].closedAt || undefined,
         scheduleId: schedule.vet[0].scheduleId,
+      } : undefined,
+      vto: schedule.vto[0] ? {
+        id: schedule.vto[0].id,
+        status: schedule.vto[0].status,
+        openedAt: schedule.vto[0].openedAt,
+        closedAt: schedule.vto[0].closedAt || undefined,
+        scheduleId: schedule.vto[0].scheduleId,
       } : undefined,
     };
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sendVetNotification } from '@/lib/email';
 import { ScheduleStatus, VETStatus, ShiftStatus } from '@prisma/client';
-import { APIResponse, ScheduleInfo, CreateScheduleRequest, VETActionRequest } from '@/types/schedule';
+import { APIResponse, VETActionRequest } from '@/types/schedule';
 
 export async function POST(
   req: NextRequest,
@@ -11,7 +11,7 @@ export async function POST(
 ) {
   try {
     const scheduleId = parseInt(params.id);
-    const body: VETActionRequest = await req.json();
+    const body = await req.json();
     const { targetPackageCount } = body;
 
     console.log(`Creating VET for schedule ${scheduleId} with targetPackageCount: ${targetPackageCount}`);
@@ -114,48 +114,128 @@ export async function PATCH(
 ) {
   try {
     const scheduleId = parseInt(params.id);
+    const body = await req.json();
+    const { action } = body;
 
     // Find the VET for this schedule
     const vet = await prisma.vET.findFirst({
-      where: { 
-        scheduleId: scheduleId,
-        status: 'OPEN'
-      }
+      where: { scheduleId: scheduleId }
     });
 
     if (!vet) {
       return NextResponse.json({ 
         success: false,
-        error: 'No open VET found for this schedule' 
+        error: 'No VET found for this schedule' 
+      }, { status: 404 });
+    }
+    
+    // Get the schedule for email notifications
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: scheduleId }
+    });
+    
+    if (!schedule) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Schedule not found' 
       }, { status: 404 });
     }
 
-    // Close the VET
-    const updatedVet = await prisma.vET.update({
-      where: {
-        id: vet.id,
-      },
-      data: {
-        status: 'CLOSED',
-        closedAt: new Date(),
+    let updatedVet;
+    
+    // Handle different actions based on the action parameter
+    if (action === 'reopen') {
+      // Check if VET is closed
+      if (vet.status !== 'CLOSED') {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Cannot reopen a VET that is not closed' 
+        }, { status: 400 });
       }
-    });
-
-    // Update schedule status
-    await prisma.schedule.update({
-      where: { id: scheduleId },
-      data: { status: 'IN_PROGRESS' }
-    });
+      
+      // Reopen the VET - set status back to OPEN and reset closedAt field
+      updatedVet = await prisma.vET.update({
+        where: {
+          id: vet.id,
+        },
+        data: {
+          status: 'OPEN',
+          // Set closedAt to null as it's now open again
+          closedAt: null
+        }
+      });
+      
+      // Update schedule status back to CONFIRMED
+      await prisma.schedule.update({
+        where: { id: scheduleId },
+        data: { status: 'CONFIRMED' }
+      });
+      
+      // Send VET notifications to ALL employees (both fixed and flex) about reopening
+      const allEmployees = await prisma.employee.findMany({
+        where: { 
+          organizationId: schedule.organizationId,
+          isActive: true
+        },
+        select: { email: true, name: true, type: true }
+      });
+      
+      console.log(`Sending VET reopening notifications to ${allEmployees.length} employees`);
+      
+      // Send emails to all employees about the reopened VET
+      try {
+        await sendVetNotification(allEmployees.map(e => e.email), {
+          date: schedule.date.toISOString(),
+          packages: vet.targetPackageCount,
+          scheduleId: scheduleId,
+        });
+        
+        console.log('VET reopening notifications sent successfully');
+      } catch (emailError) {
+        console.warn('Failed to send VET reopening notifications:', emailError);
+        // Continue execution even if emails fail
+      }
+      
+      console.log(`Reopened VET for schedule ${scheduleId}`);
+    } else {
+      // Default action: close the VET
+      // Check if VET is already closed
+      if (vet.status === 'CLOSED') {
+        return NextResponse.json({ 
+          success: false,
+          error: 'VET is already closed' 
+        }, { status: 400 });
+      }
+      
+      // Close the VET
+      updatedVet = await prisma.vET.update({
+        where: {
+          id: vet.id,
+        },
+        data: {
+          status: 'CLOSED',
+          closedAt: new Date(),
+        }
+      });
+      
+      // Update schedule status
+      await prisma.schedule.update({
+        where: { id: scheduleId },
+        data: { status: 'IN_PROGRESS' }
+      });
+      
+      console.log(`Closed VET for schedule ${scheduleId}`);
+    }
 
     return NextResponse.json({ 
       success: true,
       data: updatedVet 
     });
   } catch (error) {
-    console.error('Error closing VET:', error);
+    console.error('Error updating VET:', error);
     return NextResponse.json({ 
       success: false,
-      error: 'Failed to close VET' 
+      error: 'Failed to update VET' 
     }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 export const siteConfig = {
-    name: "Amazon Warehouse",
+    name: "Capstone Warehouse",
     description: null,
     theme: "blue",
     layout: "vertical",

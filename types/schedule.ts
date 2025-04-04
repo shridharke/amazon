@@ -1,5 +1,5 @@
 // types/schedule.ts
-import { Schedule, ScheduleStatus, EmployeeTask, VETStatus, ShiftStatus, Employee, Package, VET, Prisma, PackageStatus } from '@prisma/client';
+import { Schedule, ScheduleStatus, EmployeeTask, VETStatus, ShiftStatus, Employee, Package, VET, Prisma, PackageStatus, VTOStatus } from '@prisma/client';
 
 export interface VETInfo {
   id: number;
@@ -140,4 +140,51 @@ export interface APIResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface VTOInfo {
+  id: number;
+  status: VTOStatus;
+  openedAt: Date;
+  closedAt?: Date;
+  completedAt?: Date;
+  scheduleId: number;
+}
+
+export interface VTOApplicationInfo {
+  id: number;
+  employeeId: number;
+  vtoId: number;
+  status: VTOApplicationStatus;
+  submittedAt: Date;
+  processedAt?: Date;
+  employeeName: string;
+  employeeType: string;
+}
+
+export interface VTOActionRequest {
+  scheduleId: number;
+  organizationId: number;
+  maxEmployeeCount?: number;
+  action?: 'close' | 'reopen' | 'complete';
+}
+
+export enum VTOApplicationStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+// Update the ScheduleInfo interface to include VTO
+export interface ScheduleInfo {
+  id: number;
+  date: Date;
+  status: ScheduleStatus;
+  shift?: ShiftInfo;
+  employees: ScheduleEmployee[];
+  vet?: VETInfo;
+  vto?: VTOInfo;
+  hasActiveVto: boolean;
+  fixedEmployeesEfficiency: number;
+  remainingPackages: number;
 }
