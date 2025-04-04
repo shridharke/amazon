@@ -412,9 +412,9 @@ const TaskAllocationPage: React.FC = () => {
       
       // Calculate completion time for each plan
       const planTimes = {
-        High: calculatePlanTime("High"),
-        Medium: calculatePlanTime("Medium"),
-        Low: calculatePlanTime("Low")
+        High: calculateCompletionTimeValue("High"),
+        Medium: calculateCompletionTimeValue("Medium"),
+        Low: calculateCompletionTimeValue("Low")
       };
       
       console.log("Original plan times:", planTimes);
