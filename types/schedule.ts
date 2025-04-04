@@ -175,17 +175,3 @@ export enum VTOApplicationStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED'
 }
-
-// Update the ScheduleInfo interface to include VTO
-export interface ScheduleInfo {
-  id: number;
-  date: Date;
-  status: ScheduleStatus;
-  shift?: ShiftInfo;
-  employees: ScheduleEmployee[];
-  vet?: VETInfo;
-  vto?: VTOInfo;
-  hasActiveVto: boolean;
-  fixedEmployeesEfficiency: number;
-  remainingPackages: number;
-}
